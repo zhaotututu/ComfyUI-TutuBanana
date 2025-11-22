@@ -184,19 +184,12 @@ class TutuGeminiAPI:
                     ],
                     {"default": "ai.comfly.chat"}
                 ),
-                "model": (
-                    [
-                        "[Comfly] gemini-2.5-flash-image-preview",
-                        "[Comfly] gemini-2.0-flash-preview-image-generation", 
-                        "[OpenRouter] google/gemini-2.5-flash-image-preview"
-                    ],
-                    {"default": "[Comfly] gemini-2.5-flash-image-preview"}
-                ),
-
-                "num_images": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
-                "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.01}),
-                "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "timeout": ("INT", {"default": 120, "min": 10, "max": 600, "step": 10}),
+                "seed": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 0xffffffffffffffff,
+                    "tooltip": "随机种子，改变此值会强制重新生成图片"
+                }),
             },
             "optional": {
                 "comfly_api_key": ("STRING", {
@@ -215,8 +208,8 @@ class TutuGeminiAPI:
             }
         }
     
-    RETURN_TYPES = ("IMAGE", "STRING", "STRING")
-    RETURN_NAMES = ("generated_images", "response", "image_url")
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("generated_images", "response")
     FUNCTION = "process"
     CATEGORY = "Tutu"
 
@@ -225,6 +218,19 @@ class TutuGeminiAPI:
         self.comfly_api_key = config.get('comfly_api_key', config.get('api_key', ''))  # 向后兼容
         self.openrouter_api_key = config.get('openrouter_api_key', '')
         self.timeout = 120
+    
+    def add_random_variation(self, prompt, seed=0):
+        """
+        在提示词末尾添加隐藏的随机标识
+        确保每次运行都能得到不同结果
+        """
+        if seed == 0:
+            random_id = random.randint(10000, 99999)
+        else:
+            rng = random.Random(seed)
+            random_id = rng.randint(10000, 99999)
+        
+        return f"{prompt} [variation-{random_id}]"
     
     def _truncate_base64_in_response(self, text, max_base64_len=100):
         """截断响应文本中的base64内容以避免刷屏"""
@@ -329,7 +335,7 @@ class TutuGeminiAPI:
                 "X-Title": "ComfyUI Tutu Nano Banana"
             })
         
-        print(f"[Tutu DEBUG] Generated headers for {api_provider}: {headers}")
+        return headers
         return headers
 
     def image_to_base64(self, image):
@@ -798,56 +804,207 @@ class TutuGeminiAPI:
             
         return accumulated_content
 
+    def parse_chat_response(self, response_json, api_provider="ai.comfly.chat"):
+        """
+        解析非流式Chat Completions响应
+        参考TutuNanoBananaPro的稳妥解析策略
+        """
+        print(f"[Tutu] 开始解析响应 (API: {api_provider})...")
+        
+        try:
+            # 1. 检查基本结构
+            if "choices" not in response_json or not response_json["choices"]:
+                print(f"[Tutu] ⚠️ 响应中没有choices字段")
+                print(f"[Tutu] 完整响应: {json.dumps(response_json, indent=2, ensure_ascii=False)[:500]}")
+                return ""
+            
+            choice = response_json["choices"][0]
+            print(f"[Tutu] Choice结构: {list(choice.keys())}")
+            
+            # 2. 检查finish_reason（安全过滤检测）
+            finish_reason = choice.get("finish_reason")
+            native_finish_reason = choice.get("native_finish_reason")
+            
+            if native_finish_reason == "IMAGE_SAFETY":
+                print(f"[Tutu] ⚠️ 检测到安全过滤: IMAGE_SAFETY")
+                raise Exception("❌ 内容被安全过滤拦截\n\n可能原因：\n1. 提示词包含敏感词汇（如'女孩'、'男孩'等人物描述）\n2. 图片内容涉及人物合成\n3. OpenRouter的安全策略更严格\n\n建议：\n1. 修改提示词：将'女孩'改为'角色'、'人物'\n2. 简化人物描述，避免详细特征\n3. 添加艺术风格描述（'卡通风格'、'插画风格'）\n4. 或尝试使用Google官方API（TutuNanoBananaPro节点）")
+            
+            if finish_reason and finish_reason not in ["stop", "length"]:
+                print(f"[Tutu] ⚠️ 异常结束原因: {finish_reason}")
+            
+            # 3. 提取内容 - 支持多种格式
+            content = ""
+            
+            # 优先从message中获取（完整响应）
+            if "message" in choice:
+                message = choice["message"]
+                print(f"[Tutu] Message字段: {list(message.keys())}")
+                
+                # 🎯 优先检查images字段（OpenRouter Gemini图片生成格式）
+                if "images" in message and message["images"]:
+                    images_data = message["images"]
+                    print(f"[Tutu] 🎯 在message.images中找到图片数据: {type(images_data).__name__}")
+                    
+                    # 处理images数组
+                    image_parts = []
+                    if isinstance(images_data, list):
+                        print(f"[Tutu]   images是数组，包含 {len(images_data)} 个元素")
+                        for idx, img in enumerate(images_data, 1):
+                            if isinstance(img, dict):
+                                # 可能的格式：{"url": "data:image/..."} 或 {"data": "base64..."}
+                                if "url" in img:
+                                    image_parts.append(img["url"])
+                                    url_preview = img["url"][:50] if len(img["url"]) > 50 else img["url"]
+                                    print(f"[Tutu]     图片{idx}: 从url提取 - {url_preview}...")
+                                elif "data" in img:
+                                    # 构建data URI
+                                    mime_type = img.get("mime_type", "image/png")
+                                    data_uri = f"data:{mime_type};base64,{img['data']}"
+                                    image_parts.append(data_uri)
+                                    print(f"[Tutu]     图片{idx}: 从data构建URI ({len(img['data'])} 字符)")
+                                else:
+                                    # 尝试整个对象转JSON
+                                    print(f"[Tutu]     图片{idx}: 未知dict格式 - {list(img.keys())}")
+                            elif isinstance(img, str):
+                                # 直接是URL字符串
+                                image_parts.append(img)
+                                url_preview = img[:50] if len(img) > 50 else img
+                                print(f"[Tutu]     图片{idx}: 字符串 - {url_preview}...")
+                    elif isinstance(images_data, str):
+                        # 单个图片字符串
+                        image_parts.append(images_data)
+                        url_preview = images_data[:50] if len(images_data) > 50 else images_data
+                        print(f"[Tutu]   单个字符串 - {url_preview}...")
+                    
+                    if image_parts:
+                        print(f"[Tutu] ✓ 从message.images提取了 {len(image_parts)} 个图片URL")
+                        return "\n".join(image_parts)
+                
+                # 检查content字段
+                if "content" in message:
+                    content = message["content"]
+                    print(f"[Tutu] 从message.content提取: {len(str(content))} 字符")
+            
+            # 如果message为空，尝试从delta获取（某些API）
+            elif "delta" in choice:
+                delta = choice["delta"]
+                print(f"[Tutu] Delta字段: {list(delta.keys())}")
+                
+                if "content" in delta:
+                    content = delta["content"]
+                    print(f"[Tutu] 从delta.content提取: {len(str(content))} 字符")
+            
+            # 4. 处理不同类型的content
+            if isinstance(content, str):
+                # 字符串格式（可能包含markdown图片链接或base64）
+                return content
+            elif isinstance(content, list):
+                # 数组格式（OpenAI标准格式）
+                text_parts = []
+                for item in content:
+                    if isinstance(item, dict):
+                        if item.get("type") == "text":
+                            text_parts.append(item.get("text", ""))
+                        elif item.get("type") == "image_url":
+                            # 提取图片URL
+                            image_url = item.get("image_url", {})
+                            if isinstance(image_url, dict):
+                                url = image_url.get("url", "")
+                            else:
+                                url = str(image_url)
+                            text_parts.append(url)
+                return "\n".join(text_parts)
+            else:
+                print(f"[Tutu] ⚠️ 未知content类型: {type(content)}")
+                return str(content) if content else ""
+            
+        except Exception as e:
+            # 如果是我们自己抛出的安全过滤异常，直接传递
+            if "安全过滤拦截" in str(e):
+                raise
+            
+            print(f"[Tutu] ❌ 解析响应时出错: {str(e)}")
+            # 打印部分响应用于调试
+            try:
+                response_preview = json.dumps(response_json, indent=2, ensure_ascii=False)[:1000]
+                print(f"[Tutu] 响应预览: {response_preview}")
+            except:
+                pass
+            raise
+
     def extract_image_urls(self, response_text):
+        """提取图片URL - 支持多种格式"""
         print(f"[Tutu DEBUG] 开始提取图片URL...")
         print(f"[Tutu DEBUG] 响应文本长度: {len(response_text)}")
         
-        # 简单处理响应文本，避免base64刷屏
+        # 简化日志输出
         if 'data:image/' in response_text:
             base64_count = response_text.count('data:image/')
-            print(f"[Tutu DEBUG] 响应文本: 包含{base64_count}个base64图片({len(response_text)}字符)")
-        elif len(response_text) > 500:
-            print(f"[Tutu DEBUG] 响应文本内容: {response_text[:500]}...")
+            print(f"[Tutu DEBUG] 响应包含 {base64_count} 个base64图片")
+        elif len(response_text) > 200:
+            print(f"[Tutu DEBUG] 响应文本: {response_text[:200]}...")
         else:
-            print(f"[Tutu DEBUG] 响应文本内容: {response_text}")
+            print(f"[Tutu DEBUG] 响应文本: {response_text}")
         
-        # Check for markdown image format
-        print(f"[Tutu DEBUG] 1. 检查markdown图片格式...")
-        image_pattern = r'!\[.*?\]\((.*?)\)'
-        matches = re.findall(image_pattern, response_text)
-        if matches:
-            # 简单显示URL数量，避免刷屏
-            base64_count = sum(1 for url in matches if url.startswith('data:image/'))
-            http_count = len(matches) - base64_count
-            print(f"[Tutu DEBUG] 找到markdown图片: {base64_count}个base64图片, {http_count}个HTTP链接")
-            return matches
-
-        # Check for direct HTTP image URLs  
-        print(f"[Tutu DEBUG] 2. 检查直接HTTP图片URL...")
-        url_pattern = r'https?://\S+\.(?:jpg|jpeg|png|gif|webp)'
-        matches = re.findall(url_pattern, response_text)
-        if matches:
-            print(f"[Tutu DEBUG] 找到HTTP图片URL: {len(matches)}个")
-            return matches
+        image_urls = []
         
-        # Check for any URLs
-        print(f"[Tutu DEBUG] 3. 检查任何URL...")
-        all_url_pattern = r'https?://[^\s)]+'
-        matches = re.findall(all_url_pattern, response_text)
-        if matches:
-            print(f"[Tutu DEBUG] 找到一般URL: {len(matches)}个")
-            return matches
-            
-        # Check for base64 data URLs
-        print(f"[Tutu DEBUG] 4. 检查base64数据URL...")
+        # 1. Base64 data URLs（最常见）
+        print(f"[Tutu DEBUG] 1. 检查base64数据URL...")
         base64_pattern = r'data:image/[^;]+;base64,[A-Za-z0-9+/=]+'
         matches = re.findall(base64_pattern, response_text)
         if matches:
-            print(f"[Tutu DEBUG] 找到base64 URL: {len(matches)}个")
-            return matches
+            print(f"[Tutu DEBUG] ✓ 找到 {len(matches)} 个base64图片")
+            image_urls.extend(matches)
         
-        print(f"[Tutu DEBUG] 未找到任何图片URL")
-        return []
+        # 2. Markdown图片格式 ![](url)
+        if not image_urls:
+            print(f"[Tutu DEBUG] 2. 检查markdown图片格式...")
+            markdown_pattern = r'!\[.*?\]\((data:image/[^)]+|https?://[^)]+)\)'
+            matches = re.findall(markdown_pattern, response_text)
+            if matches:
+                print(f"[Tutu DEBUG] ✓ 找到 {len(matches)} 个markdown图片")
+                image_urls.extend(matches)
+        
+        # 3. 直接HTTP图片URL
+        if not image_urls:
+            print(f"[Tutu DEBUG] 3. 检查HTTP图片URL...")
+            url_pattern = r'https?://[^\s<>"]+\.(?:jpg|jpeg|png|gif|webp|bmp)'
+            matches = re.findall(url_pattern, response_text, re.IGNORECASE)
+            if matches:
+                print(f"[Tutu DEBUG] ✓ 找到 {len(matches)} 个HTTP图片")
+                image_urls.extend(matches)
+        
+        # 4. JSON中的图片字段
+        if not image_urls:
+            print(f"[Tutu DEBUG] 4. 尝试解析JSON格式...")
+            try:
+                json_data = json.loads(response_text)
+                # 递归搜索JSON中的图片URL
+                def find_images_in_json(obj):
+                    urls = []
+                    if isinstance(obj, dict):
+                        for key, value in obj.items():
+                            if key in ['image', 'image_url', 'url', 'data'] and isinstance(value, str):
+                                if value.startswith('data:image/') or value.startswith('http'):
+                                    urls.append(value)
+                            else:
+                                urls.extend(find_images_in_json(value))
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            urls.extend(find_images_in_json(item))
+                    return urls
+                
+                json_images = find_images_in_json(json_data)
+                if json_images:
+                    print(f"[Tutu DEBUG] ✓ 从JSON中找到 {len(json_images)} 个图片")
+                    image_urls.extend(json_images)
+            except:
+                pass
+        
+        if not image_urls:
+            print(f"[Tutu DEBUG] ❌ 未找到任何图片URL")
+        
+        return image_urls
 
     def resize_to_target_size(self, image, target_size):
         """Resize image to target size while preserving aspect ratio with padding"""
@@ -902,84 +1059,50 @@ class TutuGeminiAPI:
         else:
             return '[UNKNOWN_CONTENT_TYPE]'
 
-    def _parse_and_validate_model(self, model_with_tag, api_provider):
-        """解析带标签的模型名称并验证是否与API提供商匹配"""
-        # 模型格式：[Provider] model_name
-        if not model_with_tag.startswith('['):
-            # 如果没有标签，直接返回（向后兼容）
-            return model_with_tag
-        
-        try:
-            # 解析标签和模型名
-            tag_end = model_with_tag.find(']')
-            if tag_end == -1:
-                return model_with_tag
-                
-            provider_tag = model_with_tag[1:tag_end]  # 去掉方括号
-            actual_model = model_with_tag[tag_end + 2:]  # 去掉"] "
-            
-            # 验证提供商匹配
-            if api_provider == "OpenRouter" and provider_tag != "OpenRouter":
-                print(f"[Tutu WARNING] 选择了OpenRouter但模型是{provider_tag}的")
-                return None
-            elif api_provider == "ai.comfly.chat" and provider_tag != "Comfly":
-                print(f"[Tutu WARNING] 选择了ai.comfly.chat但模型是{provider_tag}的")
-                return None
-            
-            print(f"[Tutu DEBUG] 解析模型: {provider_tag} -> {actual_model}")
-            return actual_model
-            
-        except Exception as e:
-            print(f"[Tutu ERROR] 模型名称解析失败: {e}")
-            return model_with_tag
-
-    def _get_model_suggestions(self, api_provider):
-        """根据API提供商获取推荐的模型选择"""
-        if api_provider == "OpenRouter":
-            return "• [OpenRouter] google/gemini-2.5-flash-image-preview (推荐，支持图片生成)"
-        else:  # ai.comfly.chat
-            return "• [Comfly] gemini-2.5-flash-image-preview (推荐)\n• [Comfly] gemini-2.0-flash-preview-image-generation"
-
-    def process(self, prompt, api_provider, model, num_images, temperature, top_p, timeout=120, 
+    def process(self, prompt, api_provider, seed, 
                 input_image_1=None, input_image_2=None, input_image_3=None, input_image_4=None, input_image_5=None, 
                 comfly_api_key="", openrouter_api_key=""):
 
-        print(f"\n[Tutu DEBUG] ========== Starting Gemini API Process ==========")
-        print(f"[Tutu DEBUG] Parameters:")
-        print(f"[Tutu DEBUG] - API Provider: {api_provider}")
-        print(f"[Tutu DEBUG] - Model: {model}")
-        print(f"[Tutu DEBUG] - Prompt length: {len(prompt) if prompt else 0}")
-        print(f"[Tutu DEBUG] - Has input_image_1: {input_image_1 is not None}")
-        print(f"[Tutu DEBUG] - Has input_image_2: {input_image_2 is not None}")
-        print(f"[Tutu DEBUG] - Has input_image_3: {input_image_3 is not None}")
-        print(f"[Tutu DEBUG] - Has input_image_4: {input_image_4 is not None}")
-        print(f"[Tutu DEBUG] - Has input_image_5: {input_image_5 is not None}")
+        print(f"\n[Tutu] ========== 🍌 Nano Banana 开始处理 ==========")
+        print(f"[Tutu] API提供商: {api_provider}")
         
-        # Display model selection guide
-        print(f"\n[Tutu INFO] 💡 Model Selection Guide:")
-        print(f"[Tutu INFO] • For ai.comfly.chat: Select [Comfly] tagged models")
-        print(f"[Tutu INFO] • For OpenRouter: Select [OpenRouter] tagged models")
-        print(f"[Tutu INFO] • Current combination: {api_provider} + {model}")
+        # 根据API提供商硬编码模型选择
+        if api_provider == "OpenRouter":
+            model = "google/gemini-2.5-flash-image-preview"
+        else:  # ai.comfly.chat
+            model = "gemini-2.5-flash-image-preview"
+        
+        print(f"[Tutu] 模型: {model}")
+        print(f"[Tutu] 提示词长度: {len(prompt)} 字符")
+        print(f"[Tutu] 随机种子: {seed}")
+        
+        # 准备输入图片列表 - 保持索引对应
+        input_images = [input_image_1, input_image_2, input_image_3, input_image_4, input_image_5]
+        non_none_count = len([img for img in input_images if img is not None])
+        connected_ports = [i+1 for i, img in enumerate(input_images) if img is not None]
+        
+        if connected_ports:
+            print(f"[Tutu] 输入图片: {non_none_count} 张")
+            print(f"[Tutu] 已连接的输入端口: {connected_ports}")
+            
+            # 添加图片索引映射提示
+            print(f"[Tutu] 🔍 图片索引映射（用于提示词）:")
+            api_idx = 0
+            for port_idx, img in enumerate(input_images, 1):
+                if img is not None:
+                    api_idx += 1
+                    print(f"[Tutu]    - 端口{port_idx} → 提示词中应写'图片{api_idx}'或'第{api_idx}张图'")
+            print(f"[Tutu] ⚠️ 重要：提示词中引用图片时，请使用'图片X'编号（从1开始），而不是端口号！")
         
         # 根据API提供商设置端点
         if api_provider == "OpenRouter":
             api_endpoint = "https://openrouter.ai/api/v1/chat/completions"
         else:
             api_endpoint = "https://ai.comfly.chat/v1/chat/completions"
-        
-        print(f"[Tutu DEBUG] API Endpoint: {api_endpoint}")
 
-        # 处理模型选择并验证
-        actual_model = self._parse_and_validate_model(model, api_provider)
-        if not actual_model:
-            suggestions = self._get_model_suggestions(api_provider)
-            error_msg = f"❌ 模型选择错误！\n\n当前选择: '{model}'\nAPI提供商: '{api_provider}'\n\n💡 建议选择:\n{suggestions}\n\n请重新选择正确的模型。"
-            print(f"[Tutu ERROR] {error_msg}")
-            return self.handle_error(input_image_1, input_image_2, input_image_3, input_image_4, input_image_5, error_msg)
+        # 添加随机变化因子到提示词
+        varied_prompt = self.add_random_variation(prompt, seed)
         
-        model = actual_model
-        print(f"[Tutu DEBUG] Using actual model: {model}")
-
         # Save original prompt for processing
         original_prompt = prompt
         
@@ -989,14 +1112,12 @@ class TutuGeminiAPI:
         
         # 处理 comfly API key
         if comfly_api_key.strip():
-            print(f"[Tutu DEBUG] Using provided comfly API key: {comfly_api_key[:10]}...")
             self.comfly_api_key = comfly_api_key
             config['comfly_api_key'] = comfly_api_key
             config_changed = True
             
         # 处理 OpenRouter API key
         if openrouter_api_key.strip():
-            print(f"[Tutu DEBUG] Using provided OpenRouter API key: {openrouter_api_key[:10]}...")
             self.openrouter_api_key = openrouter_api_key
             config['openrouter_api_key'] = openrouter_api_key
             config_changed = True
@@ -1007,52 +1128,66 @@ class TutuGeminiAPI:
             
         # 显示当前使用的API key
         current_api_key = self.get_current_api_key(api_provider)
-        print(f"[Tutu DEBUG] Using {api_provider} API key: {current_api_key[:10] if current_api_key else 'None'}...")
+        print(f"[Tutu] API Key: {current_api_key[:10] if current_api_key else 'None'}***")
 
-        self.timeout = timeout
-        
-        print(f"[Tutu DEBUG] Final parameters:")
-        print(f"[Tutu DEBUG] - Model: {model}")
-        print(f"[Tutu DEBUG] - Temperature: {temperature}")
-        print(f"[Tutu DEBUG] - API Key length: {len(current_api_key) if current_api_key else 0}")
-        
         try:
 
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-            # Gemini模型自动处理尺寸，无需手动指定
-
-            has_images = any([input_image_1 is not None, input_image_2 is not None, input_image_3 is not None, 
-                           input_image_4 is not None, input_image_5 is not None])
+            # 检查是否有输入图片
+            has_images = non_none_count > 0
 
             # 使用标准OpenAI格式（数组）- 适用于所有API提供商
             content = []
             
             if has_images:
-                # 对于图片编辑任务，先添加图片，再添加指令文本
-                image_inputs = [
-                    ("input_image_1", input_image_1, "图片1"),
-                    ("input_image_2", input_image_2, "图片2"),
-                    ("input_image_3", input_image_3, "图片3"),
-                    ("input_image_4", input_image_4, "图片4"),
-                    ("input_image_5", input_image_5, "图片5")
-                ]
+                # 构建端口号到数组索引的映射
+                port_to_array_map = {}  # 端口号 -> 数组索引
+                array_idx = 0
+                for port_idx, img in enumerate(input_images, 1):
+                    if img is not None:
+                        array_idx += 1
+                        port_to_array_map[port_idx] = array_idx
                 
-                for image_var, image_tensor, image_label in image_inputs:
-                    if image_tensor is not None:
-                        pil_image = tensor2pil(image_tensor)[0]
-                        print(f"[Tutu DEBUG] 处理 {image_var} (标识为 {image_label})...")
+                # 自动转换提示词中的图片引用（端口号 -> 数组索引）
+                import re
+                original_varied_prompt = varied_prompt
+                for port_num, array_num in port_to_array_map.items():
+                    # 替换各种可能的引用格式
+                    patterns = [
+                        (rf'图{port_num}(?![0-9])', f'图{array_num}'),  # 图2 -> 图1
+                        (rf'图片{port_num}(?![0-9])', f'图片{array_num}'),  # 图片2 -> 图片1
+                        (rf'第{port_num}张图', f'第{array_num}张图'),  # 第2张图 -> 第1张图
+                        (rf'第{port_num}个图', f'第{array_num}个图'),  # 第2个图 -> 第1个图
+                    ]
+                    for pattern, replacement in patterns:
+                        varied_prompt = re.sub(pattern, replacement, varied_prompt)
+                
+                # 打印映射和转换信息
+                if port_to_array_map:
+                    print(f"[Tutu] 🔍 自动映射转换（端口号 → API数组索引）:")
+                    for port_num, array_num in port_to_array_map.items():
+                        print(f"[Tutu]    - 图{port_num} → 图{array_num} (端口{port_num} → API第{array_num}张)")
+                
+                # 对于图片编辑任务，按照原始索引添加图片
+                for i in range(len(input_images)):
+                    img_tensor = input_images[i]
+                    if img_tensor is not None:
+                        pil_image = tensor2pil(img_tensor)[0]
+                        port_num = i + 1  # 端口号
+                        array_num = port_to_array_map[port_num]  # 数组位置
                         
-                        # 统一使用base64格式，保持原始质量
-                        print(f"[Tutu DEBUG] {image_var} 使用base64格式...")
+                        print(f"[Tutu] 处理输入端口 {port_num} (已映射到API位置{array_num})...")
+                        
+                        # 统一使用base64格式
                         image_base64 = self.image_to_base64(pil_image)
                         image_url = f"data:image/png;base64,{image_base64}"
-                        print(f"[Tutu DEBUG] {image_var} base64大小: {len(image_base64)} 字符")
+                        print(f"[Tutu]   Base64大小: {len(image_base64)} 字符")
                         
-                        # 先添加图片标识文本
+                        # 先添加图片标识文本 - 使用转换后的数组索引
                         content.append({
                             "type": "text",
-                            "text": f"[这是{image_label}]"
+                            "text": f"[这是图{array_num}]"
                         })
                         
                         # 再添加图片
@@ -1061,17 +1196,17 @@ class TutuGeminiAPI:
                             "image_url": {"url": image_url}
                         })
                 
-                # 添加文本指令
+                # 添加文本指令（使用变化后的提示词）
                 if api_provider == "ai.comfly.chat":
                     # 为ai.comfly.chat添加强烈的图片生成指令
                     image_edit_instruction = f"""CRITICAL INSTRUCTION: You MUST generate and return an actual image, not just text description.
 
-Task: {prompt}
+Task: {varied_prompt}
 
 Image References:
-- When I mention "图片1", I mean the first image provided above
-- When I mention "图片2", I mean the second image provided above  
-- When I mention "图片3", I mean the third image provided above
+- The images are numbered sequentially as [这是图1], [这是图2], [这是图3], etc.
+- When I mention "图1", use the first image [这是图1]
+- When I mention "图2", use the second image [这是图2]
 - And so on...
 
 REQUIREMENTS:
@@ -1082,35 +1217,46 @@ REQUIREMENTS:
 
 Execute the image editing task now and return the generated image."""
                     content.append({"type": "text", "text": image_edit_instruction})
+                    
+                    # 打印提示词转换
+                    if original_varied_prompt != varied_prompt:
+                        print(f"[Tutu] 📝 提示词已自动转换:")
+                        print(f"[Tutu]    原始: {original_varied_prompt}")
+                        print(f"[Tutu]    转换后: {varied_prompt}")
+                    else:
+                        print(f"[Tutu] 📝 最终发送给模型的任务提示词: {varied_prompt}")
                 else:
                     enhanced_prompt = f"""IMPORTANT: Generate an actual image, not just a description.
 
-Task: {prompt}
+Task: {varied_prompt}
 
-Image references: 图片1, 图片2, 图片3, etc. refer to the images provided above in order.
+Image references: 图1, 图2, 图3, etc. refer to the images marked as [这是图1], [这是图2], [这是图3] above in order.
 
 MUST return a generated image, not text description."""
                     content.append({"type": "text", "text": enhanced_prompt})
+                    
+                    # 打印提示词转换
+                    if original_varied_prompt != varied_prompt:
+                        print(f"[Tutu] 📝 提示词已自动转换:")
+                        print(f"[Tutu]    原始: {original_varied_prompt}")
+                        print(f"[Tutu]    转换后: {varied_prompt}")
+                    else:
+                        print(f"[Tutu] 📝 最终发送给模型的任务提示词: {varied_prompt}")
                 
-                # 计算图片数量（每张图片对应两个元素：标签+图片）
-                image_count = sum(1 for _, img, _ in image_inputs if img is not None)
-                print(f"[Tutu DEBUG] content数组长度: {len(content)} (图片: {image_count}, 图片标签: {image_count}, 文本指令: 1)")
+                print(f"[Tutu] Content数组: {non_none_count} 张图片 + 标签 + 指令")
             else:
-                # 生成图片任务（无输入图片）
-                if num_images == 1:
-                    enhanced_prompt = f"""GENERATE AN IMAGE: Create a high-quality, detailed image.
+                # 生成图片任务（无输入图片）- 使用变化后的提示词
+                enhanced_prompt = f"""GENERATE AN IMAGE: Create a high-quality, detailed image.
 
-Description: {prompt}
+Description: {varied_prompt}
 
 CRITICAL: You MUST return an actual image, not just text description. Use your image generation capabilities to create the visual content."""
-                else:
-                    enhanced_prompt = f"""GENERATE {num_images} DIFFERENT IMAGES: Create {num_images} unique, high-quality images with VARIED content, each with distinct visual elements.
-
-Description: {prompt}
-
-CRITICAL: You MUST return actual {num_images} images, not text descriptions. Each image must be visually different."""
                 
                 content.append({"type": "text", "text": enhanced_prompt})
+                
+                # 打印最终发送的提示词
+                print(f"[Tutu] 📝 最终发送给模型的完整指令:")
+                print(f"[Tutu]    {enhanced_prompt}")
 
             messages = [{
                 "role": "user",
@@ -1120,91 +1266,69 @@ CRITICAL: You MUST return actual {num_images} images, not text descriptions. Eac
             payload = {
                 "model": model,
                 "messages": messages,
-                "temperature": temperature,
-                "top_p": top_p,
                 "max_tokens": 8192,
-                "stream": True  # Required for gemini-2.5-flash-image-preview
+                "stream": False  # 使用非流式处理，更稳定
             }
 
-            # 添加调试日志
-            print(f"\n[Tutu DEBUG] API Request Details:")
-            print(f"[Tutu DEBUG] API Provider: {api_provider}")
-            print(f"[Tutu DEBUG] Model: {model}")
-            print(f"[Tutu DEBUG] Has images: {has_images}")
-            print(f"[Tutu DEBUG] Messages count: {len(messages)}")
-            print(f"[Tutu DEBUG] Content type: {type(content)}")
-            print(f"[Tutu DEBUG] Content length: {len(str(content))}")
-            
-            # 记录payload大小（但不打印图片数据）
-            payload_copy = payload.copy()
-            payload_copy['messages'] = [{
-                'role': msg['role'],
-                'content': self._sanitize_content_for_debug(msg['content'])
-            } for msg in payload['messages']]
-            
-            print(f"[Tutu DEBUG] Payload structure: {json.dumps(payload_copy, indent=2, ensure_ascii=False)}")
+            # 简化日志输出
+            print(f"[Tutu] API端点: {api_endpoint}")
+            print(f"[Tutu] 开始请求...")
             
             # 检查API Key
             headers = self.get_headers(api_provider)
-            print(f"[Tutu DEBUG] Headers: {dict(headers)}")
 
             if not current_api_key or len(current_api_key) < 10:
-                print(f"[Tutu DEBUG] WARNING: API Key seems invalid: '{current_api_key[:10] if current_api_key else 'None'}...")
+                print(f"[Tutu] ⚠️ API Key无效")
 
             pbar = comfy.utils.ProgressBar(100)
             pbar.update_absolute(10)
 
             try:
-                print(f"[Tutu DEBUG] Sending request to: {api_endpoint}")
                 response = requests.post(
                     api_endpoint,
                     headers=headers,
                     json=payload,
                     timeout=self.timeout,
-                    stream=True  # Enable streaming for SSE
+                    stream=False  # 非流式处理
                 )
                 
-                print(f"[Tutu DEBUG] Response status: {response.status_code}")
-                print(f"[Tutu DEBUG] Response headers: {dict(response.headers)}")
+                print(f"[Tutu] 响应状态: {response.status_code}")
                 
-                # 如果状态码不是200，尝试读取错误响应
+                # 检查HTTP错误
                 if response.status_code != 200:
                     try:
-                        error_text = response.text[:1000]  # 只读取前1000字符
-                        print(f"[Tutu DEBUG] Error response body: {error_text}")
+                        error_text = response.text[:1000]
+                        print(f"[Tutu] 错误响应: {error_text}")
                     except:
-                        print(f"[Tutu DEBUG] Could not read error response body")
+                        print(f"[Tutu] 无法读取错误响应")
                 
                 response.raise_for_status()
                 
-                # Process Server-Sent Events (SSE) stream with API-specific handling
-                response_text = self.process_sse_stream(response, api_provider)
-                print(f"[Tutu DEBUG] SSE流处理完成，获得响应文本长度: {len(response_text)}")
+                # 直接解析完整JSON响应（非流式）
+                response_json = response.json()
+                response_text = self.parse_chat_response(response_json, api_provider)
+                print(f"[Tutu] 响应处理完成，文本长度: {len(response_text)}")
                 
             except requests.exceptions.Timeout:
-                print(f"[Tutu DEBUG] Request timeout after {self.timeout} seconds")
+                print(f"[Tutu] ❌ 请求超时 ({self.timeout}秒)")
                 raise TimeoutError(f"API request timed out after {self.timeout} seconds")
             except requests.exceptions.HTTPError as e:
-                print(f"[Tutu DEBUG] HTTP Error: {e}")
-                print(f"[Tutu DEBUG] Response status: {e.response.status_code}")
+                print(f"[Tutu] ❌ HTTP错误: {e.response.status_code}")
                 try:
                     error_detail = e.response.text[:500]
-                    print(f"[Tutu DEBUG] Error detail: {error_detail}")
+                    print(f"[Tutu] 错误详情: {error_detail}")
                     
                     # 特殊处理404错误（模型不存在）
                     if e.response.status_code == 404 and "No endpoints found" in error_detail:
-                        suggestions = self._get_model_suggestions(api_provider)
                         model_error = f"""❌ **模型不存在错误**
 
 **当前选择的模型**: `{model}`
+**API提供商**: {api_provider}
 **错误**: 此模型在 {api_provider} 上不可用
 
-**💡 建议选择可用的模型**:
-{suggestions}
-
 **解决方案**:
-1. 切换到上面推荐的可用模型
-2. 确认模型名称拼写正确
+1. 检查API密钥是否正确
+2. 确认 {api_provider} 账户有权限使用此模型
 3. 检查 {api_provider} 官方文档获取最新支持的模型列表"""
                         raise Exception(model_error)
                     else:
@@ -1212,29 +1336,24 @@ CRITICAL: You MUST return actual {num_images} images, not text descriptions. Eac
                 except:
                     raise Exception(f"HTTP Error: {str(e)}")
             except requests.exceptions.RequestException as e:
-                print(f"[Tutu DEBUG] Request Exception: {str(e)}")
+                print(f"[Tutu] ❌ 请求异常: {str(e)}")
                 raise Exception(f"API request failed: {str(e)}")
             
             pbar.update_absolute(40)
 
-            # 简化base64内容以避免刷屏
-            truncated_response = self._truncate_base64_in_response(response_text, max_base64_len=100)
-            formatted_response = f"**User prompt**: {prompt}\n\n**Response** ({timestamp}):\n{truncated_response}"
+            # 简化响应格式
+            formatted_response = f"**提示词**: {original_prompt}\n\n**响应时间**: {timestamp}\n\n**种子**: {seed}"
             
-            print(f"[Tutu DEBUG] 准备提取图片URL，响应文本长度: {len(response_text)}")
+            print(f"[Tutu] 提取图片URL...")
             image_urls = self.extract_image_urls(response_text)
-            print(f"[Tutu DEBUG] 图片URL提取完成，找到{len(image_urls)}个URL")
+            print(f"[Tutu] 找到 {len(image_urls)} 个图片URL")
             
             if image_urls:
                 try:
                     images = []
-                    first_image_url = ""  
                     
                     for i, url in enumerate(image_urls):
                         pbar.update_absolute(40 + (i+1) * 50 // len(image_urls))
-                        
-                        if i == 0:
-                            first_image_url = url  
                         
                         try:
                             if url.startswith('data:image/'):
@@ -1248,12 +1367,13 @@ CRITICAL: You MUST return actual {num_images} images, not text descriptions. Eac
                                 img_response.raise_for_status()
                                 pil_image = Image.open(BytesIO(img_response.content))
 
-                            # 直接使用生成的原图，不进行尺寸调整以避免白边
+                            # 直接使用生成的原图
                             img_tensor = pil2tensor(pil_image)
                             images.append(img_tensor)
+                            print(f"[Tutu] 图片 {i+1} 处理成功: {pil_image.size}")
                             
                         except Exception as img_error:
-                            print(f"Error processing image URL {i+1}: {str(img_error)}")
+                            print(f"[Tutu] ⚠️ 图片 {i+1} 处理失败: {str(img_error)}")
                             continue
                     
                     if images:
@@ -1263,88 +1383,65 @@ CRITICAL: You MUST return actual {num_images} images, not text descriptions. Eac
                             combined_tensor = images[0] if images else None
                             
                         pbar.update_absolute(100)
-                        return (combined_tensor, formatted_response, first_image_url)
+                        print(f"[Tutu] ========== ✓ 处理完成 ==========\n")
+                        return (combined_tensor, formatted_response)
                     else:
                         raise Exception("No images could be processed successfully")
                     
                 except Exception as e:
-                    print(f"Error processing image URLs: {str(e)}")
+                    print(f"[Tutu] ❌ 图片处理错误: {str(e)}")
 
-            # No image URLs found in response - 可能是SSE解析问题
-            print(f"[Tutu WARNING] ⚠️  响应中未找到图片URL - 可能是SSE解析问题")
-            # 简单显示响应内容，避免base64刷屏
+            # No image URLs found in response
+            print(f"[Tutu] ⚠️ 响应中未找到图片URL")
             if 'data:image/' in response_text:
                 base64_count = response_text.count('data:image/')
-                print(f"[Tutu DEBUG] 📝 当前解析响应: 包含{base64_count}个base64图片({len(response_text)}字符)")
-            elif len(response_text) > 200:
-                print(f"[Tutu DEBUG] 📝 当前解析响应: {repr(response_text[:200])}...")
-            else:
-                print(f"[Tutu DEBUG] 📝 当前解析响应: {repr(response_text)}")
-            print(f"[Tutu DEBUG] 🔍 Gemini 2.5 Flash Image Preview 支持图片生成，问题可能在数据解析上")
-            print(f"[Tutu DEBUG] 💡 检查点:")
-            print(f"[Tutu DEBUG]    1. SSE流是否完整解析？")
-            print(f"[Tutu DEBUG]    2. JSON数据是否被正确拼接？")
-            print(f"[Tutu DEBUG]    3. 编码是否正确处理？")
+                print(f"[Tutu] 响应包含 {base64_count} 个base64图片标识")
             
             pbar.update_absolute(100)
 
             reference_image = None
-            for img in [input_image_1, input_image_2, input_image_3, input_image_4, input_image_5]:
+            for img in input_images:
                 if img is not None:
                     reference_image = img
                     break
                 
-            # 添加调试说明到响应中
-            debug_info = f"""
-
-## 🔧 **调试信息：SSE解析问题**
-
-**当前状态**: 响应解析可能不完整
-**解析到的内容**: {response_text}
-**问题**: Gemini 2.5 Flash Image Preview 支持图片生成，但我们的SSE流解析可能有bug
-
-**请检查控制台日志获取详细的解析过程**
-"""
+            # 添加调试信息到响应中
+            debug_info = f"\n\n## 调试信息\n**状态**: 响应解析可能不完整\n**请检查控制台日志获取详细信息**"
             formatted_response += debug_info
                 
             if reference_image is not None:
-                return (reference_image, formatted_response, "")
+                print(f"[Tutu] ========== ⚠️ 处理完成(无图片) ==========\n")
+                return (reference_image, formatted_response)
             else:
                 default_image = Image.new('RGB', (1024, 1024), color='white')
                 default_tensor = pil2tensor(default_image)
-                return (default_tensor, formatted_response, "")
+                print(f"[Tutu] ========== ⚠️ 处理完成(无图片) ==========\n")
+                return (default_tensor, formatted_response)
             
         except TimeoutError as e:
             error_message = f"API timeout error: {str(e)}"
-            print(f"[Tutu DEBUG] TimeoutError occurred: {error_message}")
-            return self.handle_error(input_image_1, input_image_2, input_image_3, input_image_4, input_image_5, error_message)
+            print(f"[Tutu] ❌ 超时错误: {error_message}")
+            return self.handle_error(input_images, error_message)
             
         except Exception as e:
             error_message = f"Error calling Gemini API: {str(e)}"
-            print(f"[Tutu DEBUG] Exception occurred:")
-            print(f"[Tutu DEBUG] - Type: {type(e).__name__}")
-            print(f"[Tutu DEBUG] - Message: {str(e)}")
-            print(f"[Tutu DEBUG] - Full error: {repr(e)}")
+            print(f"[Tutu] ❌ 异常:")
+            print(f"[Tutu]   类型: {type(e).__name__}")
+            print(f"[Tutu]   消息: {str(e)}")
             
-            # 打印更多上下文信息
-            print(f"[Tutu DEBUG] Context at error:")
-            print(f"[Tutu DEBUG] - Current model: {model if 'model' in locals() else 'undefined'}")
-            print(f"[Tutu DEBUG] - API key present: {bool(current_api_key)}")
-            print(f"[Tutu DEBUG] - API key length: {len(current_api_key) if current_api_key else 0}")
-            
-            return self.handle_error(input_image_1, input_image_2, input_image_3, input_image_4, input_image_5, error_message)
+            return self.handle_error(input_images, error_message)
     
-    def handle_error(self, input_image_1, input_image_2, input_image_3, input_image_4, input_image_5, error_message):
+    def handle_error(self, input_images, error_message):
         """Handle errors with appropriate image output"""
         # 按优先级返回第一个可用的图片
-        for img in [input_image_1, input_image_2, input_image_3, input_image_4, input_image_5]:
+        for img in input_images:
             if img is not None:
-                return (img, error_message, "")
+                return (img, error_message)
         
-        # 如果没有输入图片，创建默认图片 (1024x1024)
+        # 如果没有输入图片，创建默认图片
         default_image = Image.new('RGB', (1024, 1024), color='white')
         default_tensor = pil2tensor(default_image)
-        return (default_tensor, error_message, "")
+        return (default_tensor, error_message)
 
 
 WEB_DIRECTORY = "./web"    
@@ -1354,5 +1451,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "TutuGeminiAPI": "🚀 Tutu Nano Banana",
+    "TutuGeminiAPI": "🍌 Tutu 图图的香蕉模型(OpenRouter / Comfly)",
 }

@@ -1,0 +1,28 @@
+/* Tutu节点自定义样式 - 调整间距 */
+
+/* 减小节点内部组件之间的间距 */
+.graphnode[title*="Tutu"] .property,
+.graphnode[title*="提示词模板管理器"] .property {
+    margin-bottom: 5px !important;
+    padding: 2px 0 !important;
+}
+
+/* 调整输入框上方的间距 */
+.graphnode[title*="Tutu"] .property + .property,
+.graphnode[title*="提示词模板管理器"] .property + .property {
+    margin-top: 5px !important;
+}
+
+/* 调整按钮之间的间距 */
+.graphnode[title*="Tutu"] button,
+.graphnode[title*="提示词模板管理器"] button {
+    margin: 3px 0 !important;
+}
+
+/* 调整输入框高度和间距 */
+.graphnode[title*="Tutu"] textarea,
+.graphnode[title*="提示词模板管理器"] textarea {
+    min-height: 120px !important;
+    margin: 5px 0 !important;
+}
+

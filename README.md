@@ -1,597 +1,456 @@
-# Comfyui_Tutuapi
+<div align="center">
 
-**Version: 2.0** | [中文](#chinese) | [English](#english)
+![AI LAB Tutu Logo](image/logo.png)
+
+# 🍌 ComfyUI-TutuBanana
+
+**ComfyUI的专业Gemini图像生成节点套装**
+
+[![GitHub stars](https://img.shields.io/github/stars/zhaotututu/ComfyUI-TutuBanana?style=social)](https://github.com/zhaotututu/ComfyUI-TutuBanana)
+[![GitHub issues](https://img.shields.io/github/issues/zhaotututu/ComfyUI-TutuBanana)](https://github.com/zhaotututu/ComfyUI-TutuBanana/issues)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
+
+[中文文档](README.md) | [English](README_EN.md)
+
+</div>
 
 ---
 
-`<a id="chinese"></a>`
+## 中文文档
 
-## 中文
+### 📖 项目简介
 
-一个功能强大的ComfyUI自定义节点套装，专为Google Gemini图像生成打造，采用先进的双节点架构和全面的模板系统。
+ComfyUI-TutuBanana 是一个功能强大的ComfyUI自定义节点套装，专为Google Gemini系列模型的图像生成而设计。该项目提供了三个核心节点，涵盖从提示词模板管理到多平台API调用的完整工作流程。
 
-### 主要特色
+**核心特性：**
 
-- **🎯 双节点架构**：主生成节点 + 高级提示词优化节点
-- **🖼️ 多图像处理**：支持最多5张图像同时输入，用于复杂的图像编辑任务
-- **🌐 多平台支持**：完全兼容 ai.comfly.chat 和 OpenRouter API提供商
-- **🎨 专业模板系统**：内置12个专业预设，涵盖摄影、艺术和数字设计
-- **⚡ 高级提示词大师**：智能场景检测、多语言优化和风格增强
-- **🔧 Base64优化**：增强的图像处理，保持质量并消除白边
-- **📡 SSE流处理优化**：针对不同API提供商的实时流处理优化
+- 🎨 **三大核心节点**：提示词模板管理器 + 双API平台支持 + Google官方API专业版
+- 📚 **333个专业模板**：涵盖10大类别的高质量提示词模板，中英文双语支持
+- 🖼️ **多图像处理**：最多支持14张图像同时输入，适用于复杂的图像编辑任务
+- 🌐 **多平台兼容**：支持 OpenRouter、ai.comfly.chat、Google官方API 和 T8Star
+- 🔄 **智能索引映射**：自动处理端口号与API图片索引的对应关系
+- ⚡ **随机变化控制**：通过种子实现可控的随机性，支持"抽卡"式生成
 
-### 支持的AI服务
+---
 
-#### API提供商
+### 🎯 三大核心节点
 
-1. **ai.comfly.chat**
+#### 1️⃣ 提示词模板管理器
 
-   - 稳定可靠的API服务
-   - 支持图片上传和base64传输
-2. **OpenRouter**
+**节点名称：** `🎨 Tutu 图图香蕉模型提示词模板管理器`
 
-   - 支持多种模型路由
-   - 标准OpenAI格式
+![提示词模板管理器](image/QQ20251123-003425.png)
 
-#### Google Gemini 模型
+**功能特点：**
 
-**Comfly平台模型**：
+- 📚 内置333个精选提示词模板
+- 🗂️ 10大类别分类（摄影、自然、品牌、交通工具、风景、角色等）
+- 🌍 中英文双语模板支持
+- 🔍 可视化模板浏览器，支持搜索和预览
+- 💾 一键加载和应用模板
 
-- **[Comfly] gemini-2.5-flash-image-preview** - 推荐使用，支持图片生成
-- **[Comfly] gemini-2.0-flash-preview-image-generation** - 备用旧版
+![模板浏览器界面](image/QQ20251123-003541.png)
 
-**OpenRouter平台模型**：
+**使用场景：**
 
-- **[OpenRouter] google/gemini-2.5-flash-image-preview** - 推荐使用
+- 快速获取专业级提示词灵感
+- 标准化提示词风格
+- 学习高质量提示词的写作方法
 
-### 节点规格说明
+---
 
-#### 🚀 Tutu Nano Banana (主生成节点)
+#### 2️⃣ 香蕉模型（OpenRouter / Comfly）
 
-**必需输入**：
+**节点名称：** `🍌 Tutu 图图的香蕉模型(OpenRouter / Comfly)`
 
-- `prompt` - 文本提示词（STRING，推荐连接提示词大师输出）
-- `api_provider` - API提供商选择（ai.comfly.chat / OpenRouter）
-- `model` - 带提供商标签的模型选择
-- `num_images` - 生成图像数量（1-4）
-- `temperature` - 创造性控制（0.0-2.0，默认：1.0）
-- `top_p` - 采样控制（0.0-1.0，默认：0.95）
-- `timeout` - 请求超时时间（10-600秒，默认：120）
+![香蕉模型节点](image/QQ20251123-003640.png)
 
-**可选输入**：
+**核心功能：**
 
-- `comfly_api_key` - ai.comfly.chat API密钥（自动保存到配置）
-- `openrouter_api_key` - OpenRouter API密钥（自动保存到配置）
-- `input_image_1` 到 `input_image_5` - 最多5张参考图像用于编辑任务
+- 🌐 **双平台支持**：OpenRouter 和 ai.comfly.chat
+- 🎯 **智能模型选择**：根据API提供商自动匹配模型
+  - OpenRouter: `google/gemini-2.5-flash-image-preview`
+  - Comfly: `gemini-2.5-flash-image-preview`
+- 🖼️ **5路图像输入**：支持最多5张参考图像
+- 🔢 **自动索引映射**：将端口号自动转换为API图片编号
+- 🎲 **随机种子控制**：可重现的随机性，支持"抽卡"功能
 
-#### 🎨 Tutu Nano Banana Prompt Master (优化节点)
+**技术特性：**
 
-**必需输入**：
+- Base64图像编码
+- 自动提示词增强（区分文生图/图生图模式）
+- 智能图片标注（`[这是图1]`、`[这是图2]`等）
+- 非流式API调用，更稳定可靠
 
-- `template_selection` - 模板系统（自定义输入 / 自动检测场景 / 保存的模板）
-- `user_idea` - 您的创意概念（多行文本输入）
-- `language` - 优化语言（英文优化 / 中文优化）
-- `detail_level` - 质量增强级别（基础 / 专业 / 高级 / 大师级）
+**输入端口：**
 
-**可选输入**：
+- `prompt` (强制输入)：提示词文本
+- `input_image_1~5` (可选)：参考图像
+- `api_provider`：API提供商选择
+- `seed`：随机种子（0为完全随机）
+- `comfly_api_key` / `openrouter_api_key`：API密钥
 
-- `camera_control` - 摄影控制（广角镜头 / 微距拍摄 / 低角度 / 高角度 / 特写 / 中景）
-- `lighting_control` - 灯光设置（工作室灯光 / 自然光 / 黄金时刻 / 戏剧性 / 柔和）
-- `quality_enhancement` - 启用高级质量条款（布尔值，默认：True）
-- `custom_additions` - 额外自定义条款
+**输出端口：**
 
-**节点输出：**
+- `generated_images`：生成的图像张量
+- `response`：详细的生成信息
 
-#### 🚀 Tutu Nano Banana 输出
+---
 
-- `generated_images` - 生成的图像张量（IMAGE）
-- `response` - 详细的API响应和处理信息（STRING）
-- `image_url` - 第一张生成图像的URL（如果可用）（STRING）
+#### 3️⃣ 香蕉模型专业版（Google官方 / T8Star）
 
-#### 🎨 提示词大师输出
+**节点名称：** `🍌 Tutu 图图的香蕉模型专业版/香蕉2 (Google官方 / T8Star)`
 
-- `optimized_prompt` - 增强和优化的提示词（STRING）
-- `template_used` - 应用的模板信息（STRING）
-- `optimization_report` - 详细的处理报告和应用的增强功能（STRING）
+![香蕉模型专业版](image/QQ20251123-003650.png)
 
-### 专业模板系统
+**专业特性：**
 
-#### 🎨 内置专业预设（12个模板）
+- 🏢 **Google官方API直连**：使用官方Gemini 3 Pro API
+- 🎯 **T8Star API支持**：国内优化的API服务
+- 🖼️ **14路图像输入**：专业级多图处理能力
+- 📐 **精确尺寸控制**：
+  - 宽高比：1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
+  - 分辨率：1K, 2K, 4K
+- 🔍 **Google搜索增强**：启用联网搜索功能（仅Google官方）
+- 🎲 **智能图片选择**：自动选择最高分辨率输出
 
-我们的模板系统包括为不同创意场景精心制作的预设：
+**输入端口：**
 
-**📸 摄影预设**：
+- `prompt` (强制输入)：提示词文本
+- `input_image_1~14` (可选)：参考图像
+- `api_provider`：Google官方 / T8Star
+- `aspect_ratio`：宽高比选择
+- `image_size`：分辨率级别
+- `seed`：随机种子
+- `enable_google_search`：启用搜索增强（仅Google，就是可以获得即时信息，比如绘制一张图，包含明天的天气情况和日期，模型就会自主去查找，从而获得当下最准确的信息。）
+- `google_api_key` / `t8star_api_key`：API密钥
 
-- **专业人像摄影** - 专业灯光和构图的工作室人像
-- **电影级风景摄影** - 戏剧性灯光的史诗风景摄影
-- **商品摄影** - 简洁呈现的商业产品摄影
-- **建筑摄影** - 简洁线条的专业建筑摄影
-- **美食摄影** - 完美呈现的诱人美食摄影
-- **复古胶片摄影** - 怀旧氛围的经典胶片摄影
+**输出端口：**
 
-**🎨 艺术与数字预设**：
+- `generated_image`：最高质量生成图像
+- `response`：详细的生成报告
 
-- **数字概念艺术** - 奇幻元素的高质量数字概念艺术
-- **日式动漫插画** - 鲜艳色彩的日式动漫风格插画
-- **古典油画** - 大师级质量的传统油画
-- **水彩画** - 柔和流动色彩的精致水彩画
-- **超写实渲染** - 完美细节的超真实3D渲染
-- **赛博朋克未来** - 霓虹和高科技元素的未来主义赛博朋克美学
+---
 
-#### 模板功能特点
+### 🚀 快速开始
 
-- **🔥 一键增强**：选择任何预设即可立即应用专业级参数
-- **🧠 智能提示词融合**：模板使用 `{prompt}` 占位符与您的创意想法无缝融合
-- **📏 优化长度**：所有模板优化为50字符以内，提高API效率
-- **🎯 场景特定**：每个模板针对特定创意场景和艺术风格调优
-- **💾 自动检测**：提示词大师可以自动检测场景类型并建议合适的模板
+#### 安装方式
 
-### 安装教程
+**方法一：通过ComfyUI Manager安装（推荐）**
 
-#### 方法一：Git克隆安装（推荐）
+1. 打开ComfyUI Manager
+2. 搜索 `TutuBanana`
+3. 点击安装并重启ComfyUI
+
+**方法二：Git克隆安装**
 
 ```bash
-cd /path/to/ComfyUI/custom_nodes
-git clone https://github.com/zhaotututu/Comfyui_Tutuapi.git
-# 重启ComfyUI
+cd ComfyUI/custom_nodes
+git clone https://github.com/zhaotututu/ComfyUI-TutuBanana.git
+cd ComfyUI-TutuBanana
+pip install -r requirements.txt
 ```
 
-#### 方法二：直接下载安装
+**方法三：手动下载安装**
 
-1. 从 [GitHub releases](https://github.com/zhaotututu/Comfyui_Tutuapi/releases) 下载ZIP文件
-2. 解压到 `ComfyUI/custom_nodes/` 目录
-3. 将文件夹重命名为 `Comfyui_Tutuapi`
+1. 下载ZIP：[GitHub Releases](https://github.com/zhaotututu/ComfyUI-TutuBanana/releases)
+2. 解压到 `ComfyUI/custom_nodes/ComfyUI-TutuBanana`
+3. 安装依赖：`pip install -r requirements.txt`
 4. 重启ComfyUI
 
-### 配置说明
+---
 
-1. **安装依赖包**：
+#### 配置API密钥
 
-   ```bash
-   cd custom_nodes/Comfyui_Tutuapi
-   pip install -r requirements.txt
-   ```
-2. **配置API Key**：
+**方式一：在节点中直接输入（推荐）**
 
-   编辑 `Tutuapi.json` 文件：
+- 在节点的对应API密钥输入框中填写
+- 自动保存到配置文件
 
-   ```json
-   {
-     "comfly_api_key": "your_comfly_api_key_here",
-     "openrouter_api_key": "your_openrouter_api_key_here"
-   }
-   ```
+**方式二：编辑配置文件**
 
-   注：也可以在节点界面中直接输入API Key，会自动保存到配置文件。
-3. **获取API Key**：
+创建或编辑 `Tutuapi.json`：
 
-   - **ai.comfly.chat**: 访问 [https://ai.comfly.chat](https://ai.comfly.chat) 注册并获取API Key
-   - **OpenRouter**: 访问 [https://openrouter.ai](https://openrouter.ai) 注册并获取API Key
+```json
+{
+  "comfly_api_key": "your_comfly_api_key_here",
+  "openrouter_api_key": "your_openrouter_api_key_here",
+  "google_api_key": "your_google_api_key_here",
+  "t8star_api_key": "your_t8star_api_key_here"
+}
+```
 
-### 快速使用
+**获取API密钥：**
 
-1. 加载文件夹中的示例工作流
-2. 在Gemini节点中，从"预设"下拉菜单选择预设，输入您的提示词
-3. 可选择上传参考图片，输入API密钥
-4. 运行节点生成内容
+- **OpenRouter**: [https://openrouter.ai](https://openrouter.ai)
+- **ai.comfly.chat**: [https://ai.comfly.chat](https://ai.comfly.chat)
+- **Google官方**: [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- **T8Star**: [https://ai.t8star.cn](https://ai.t8star.cn)
 
-#### 图像编辑模式
+---
 
-- 上传图片到任一图片输入端口即自动启用图像编辑模式
-- 支持同时使用多张参考图片
-- 提示词将与预设模板智能合并
-- 每张参考图在上传的时候已经内部标注，你可以直接使用诸如“将图一中的兔子放在图二的桌子上，使用图三的风格，生成一张全新的图片”这样的语句。
+### 📊 使用场景与工作流
 
-#### 文本生成图像模式
+#### 场景1：纯文本生成图像
 
-- 不上传图片时自动使用文本生成图像模式
-- 系统会自动添加尺寸和质量优化提示词
-- 支持生成1-4张不同内容的图片
+```
+[提示词模板管理器] → [香蕉模型] → 生成图像
+```
 
-### 故障排除
+1. 在模板管理器中选择合适的模板
+2. 将模板输出连接到香蕉模型的prompt输入
+3. 不连接任何图像输入
+4. 运行生成
 
-**模型选择错误**：
+#### 场景2：单图编辑/风格转换
 
-- ai.comfly.chat 必须选择带 [Comfly] 标签的模型
-- OpenRouter 必须选择带 [OpenRouter] 标签的模型
-- 不要混用不同平台的模型
+```
+[加载图像] → input_image_1
+[提示词] → prompt
+[香蕉模型] → 生成编辑后的图像
+```
 
-**API调用失败**：
+#### 场景3：多图合成创作
 
-- 检查API Key是否正确配置
-- 确认网络连接正常
-- 检查API余额是否充足
-- 确保选择了正确的模型
+```
+[图像1] → input_image_1
+[图像2] → input_image_2
+[图像3] → input_image_3
+[提示词：将图1的人物放在图2的背景中，使用图3的风格] → prompt
+[香蕉模型] → 生成合成图像
+```
 
-**节点库中找不到节点**：
+#### 场景4：专业高清输出
 
-- 安装后请重启ComfyUI
-- 节点显示名称为"Tutu Nano Banana"，请在节点库中搜索
-- 如与其他扩展发生冲突，节点内部使用TutuGeminiAPI名称以避免冲突
+```
+[提示词模板管理器] → [香蕉模型专业版]
+选择：
+- 分辨率：4K
+- 宽高比：16:9
+- Google官方API
+→ 生成超高清图像
+```
 
-**图像质量问题**：
+---
 
-- 节点现在保持AI生成图像的原始质量
-- 不会出现白边或不必要的尺寸调整
-- 图像保持其原生分辨率和质量
+### 🎯 高级技巧
 
-### 版本更新
+#### 1. 图片索引自动映射
 
-#### v2.0 (当前版本 - 重大架构升级)
+**问题场景：**
+假设你只连接了 `input_image_2` 和 `input_image_5`
 
-- **🎯 全新**: 双节点架构，配备专用提示词大师节点
-- **🖼️ 全新**: 多图处理 - 最多5张图输入，智能标注，方便描述
-- **🎨 增强**: 专业模板系统，12个优化预设
-- **⚡ 全新**: 高级提示词大师，智能场景检测
-- **🌐 全新**: 多语言优化支持（英文/中文）
-- **📡 改进**: 增强SSE流处理，更好的兼容性
-- **🎛️ 全新**: 高级质量控制（基础/专业/高级/大师级）
-- **📸 全新**: 相机和灯光控制系统
+**✅你可以这样写：**
 
-#### v1.1
+```
+将图2中的猫和图5中的狗合成在一起
+```
 
-- **修复**: 节点名称冲突 - 内部使用TutuGeminiAPI
-- **增强**: 统一base64图像处理，支持所有API提供商
-- **修复**: 消除生成图像的白边问题
-- **改进**: OpenRouter API兼容性，直接base64处理
+**✅ 也可以这样写：**
 
-#### v1.0
+```
+将图1中的猫和图2中的狗合成在一起
+```
 
-- 初始版本，核心功能发布
-- 多平台API支持
-- 基础预设系统
-- 流式响应支持
+**原因：** 节点会自动将已连接的端口映射为连续的图片编号。系统会自动转换：
 
-### 教程与资源
+- `input_image_2` (端口2) → `图1`（API中的第1张图）
+- `input_image_5` (端口5) → `图2`（API中的第2张图）
 
-📺 **视频教程**：
+**💡 最佳实践：**
 
-- **Bilibili**: [@zhaotutu](https://space.bilibili.com/431046154) - 详细的使用教程、工作流演示、模型训练指南等丰富内容
-- **YouTube**: [@zhaotutu](https://www.youtube.com/@zhaotutu) - 英文教程和创意案例分享
+- 使用从1开始的连续编号：`图1`, `图2`, `图3`...
+- 支持多种表达：`图X`, `图片X`, `第X张图`, `第X个图`
+- 系统会自动处理端口号与实际图片位置的对应关系
 
-📦 **工作流下载**：
+---
 
-- 在 [RunningHub](https://www.runninghub.ai/user-center/1936823199386537986/webapp?inviteCode=rh-v0990) 下载配套工作流
-- 包含各种创意示例、高级技巧和实战案例
+#### 2. 随机种子的使用
 
-### 系统要求与技术栈
+**`seed = 0`（默认）**
 
-#### 🖥️ 系统要求
+- 每次运行生成完全不同的结果
+- 适合"抽卡"式探索
+- 每次会在提示词末尾添加随机标识符
+
+**`seed = 固定值（如12345）`**
+
+- 使用相同提示词和种子会生成相似（但不完全相同）的结果
+- 适合微调和迭代
+- 基于种子生成确定性的随机变化
+
+**示例：**
+
+```
+seed = 0  → variation-53921
+seed = 0  → variation-78432  (完全不同)
+seed = 42 → variation-67834
+seed = 42 → variation-67834  (每次相同)
+```
+
+---
+
+#### 3. 模板系统使用技巧
+
+**浏览和搜索：**
+
+- 点击节点的"浏览模板"按钮打开模板管理器
+- 左侧分类栏筛选类别
+- 右上角搜索框快速定位
+- 查看示例图片了解效果
+
+**应用模板：**
+
+1. 选择模板后，提示词会自动加载到输入框
+2. 可以直接使用或进一步编辑
+3. 模板中的 `{prompt}` 占位符会被替换为实际内容
+
+**自定义模板：**
+
+- 点击"创建新模板"
+- 输入名称、分类、提示词内容
+- 保存后即可在"我的模板"中找到
+
+---
+
+### 🔧 系统要求
+
+**运行环境：**
 
 - **ComfyUI**: 最新版本
-- **Python**: 3.8+ （推荐3.10+）
+- **Python**: 3.8+ (推荐 3.10+)
 - **操作系统**: Windows / macOS / Linux
 
-#### 📦 核心依赖库
+**核心依赖：**
 
-```text
+```
 aiohttp              # 异步HTTP客户端
 aiohttp-cors         # CORS支持
 GitPython           # Git集成
 numpy               # 数值计算
 Pillow              # 图像处理
-requests            # HTTP请求库
-torch               # PyTorch深度学习框架
-transformers        # Hugging Face模型库
-huggingface-hub     # Hugging Face Hub集成
+requests            # HTTP请求
+torch               # PyTorch框架
+transformers        # Hugging Face库
+huggingface-hub     # Hub集成
 psutil              # 系统监控
-matrix-client       # Matrix通讯协议支持
+matrix-client       # Matrix协议
 ```
-
-#### ⚙️ 节点架构
-
-- **主节点**: `TutuGeminiAPI` (显示为 "🚀 Tutu Nano Banana")
-- **辅助节点**: `TutuNanaBananaPromptMaster` (显示为 "🎨 Tutu Nano Banana Prompt Master")
-- **工具函数**: `utils.py` - 专业的PIL/Tensor转换工具
-- **配置管理**: `Tutuapi.json` - API密钥和设置存储
-- **模板系统**: `presets.json` - 预设模板持久化存储
-
-### 支持与反馈
-
-如遇到问题或有功能建议，请在 [GitHub Issues](https://github.com/zhaotututu/Comfyui_Tutuapi/issues) 提交。
-
-### 许可证
-
-本项目基于Apache-2.0许可证开源。
-
-### 致谢
-
-本项目参考了 [Comfyui_Comfly](https://github.com/ainewsto/Comfyui_Comfly) 项目的部分代码实现，特此感谢原作者的优秀工作。
 
 ---
 
-`<a id="english"></a>`
+### ❓ 常见问题
 
-## English
+#### Q1: 为什么我的图片没有生成？
 
-A powerful ComfyUI custom node suite for Google Gemini image generation with advanced dual-node architecture and comprehensive template system.
+**A:** 检查以下几点：
 
-### Features
+1. API密钥是否正确
+2. 网络连接是否正常
+3. API余额是否充足
+4. 提示词是否明确包含生成图片的指令
+5. 查看控制台日志获取详细错误信息
 
-- **🎯 Dual-Node Architecture**: Main generation node + advanced prompt optimization node
-- **🖼️ Multi-Image Processing**: Supports up to 5 simultaneous image inputs for complex editing tasks
-- **🌐 Multi-Platform Support**: Full compatibility with ai.comfly.chat and OpenRouter API providers
-- **🎨 Professional Template System**: 12 built-in professional presets covering photography, art, and digital design
-- **⚡ Advanced Prompt Master**: Intelligent scene detection, multi-language optimization, and style enhancement
-- **🔧 Base64 Optimization**: Enhanced image processing with quality preservation and no white borders
-- **📡 SSE Stream Processing**: Optimized real-time streaming for different API providers
+#### Q2: 如何获得更好的生成质量？
 
-### Supported Services
+**A:** 建议：
 
-#### API Providers
+1. 使用香蕉模型专业版（支持更高分辨率）
+2. 选择4K分辨率
+3. 使用提示词模板管理器中的专业模板
+4. 提供清晰、具体的描述
+5. 如需真实感，添加"photorealistic"、"高清"等关键词
 
-1. **ai.comfly.chat**
+#### Q3: 提示词中的图片编号如何使用？
 
-   - Stable and reliable API service
-   - Supports image upload and base64 transfer
-2. **OpenRouter**
+**A:**
 
-   - Multiple model routing support
-   - Standard OpenAI format
+- **始终从1开始编号**：`图1`, `图2`, `图3`...
+- **不要使用端口号**：即使你连接的是 `input_image_3`，也应该写"图1"
+- 系统会自动映射端口号到连续的图片编号
 
-#### Google Gemini Models
+#### Q4: OpenRouter和Comfly有什么区别？
 
-**Comfly Platform Models**:
+**A:**
 
-- **[Comfly] gemini-2.5-flash-image-preview** - Recommended, supports image generation
-- **[Comfly] gemini-2.0-flash-preview-image-generation** - Legacy version
+- **OpenRouter**: 国际服务，支持多种模型路由，标准OpenAI格式
+- **Comfly**: 国内优化，访问速度快，界面友好
 
-**OpenRouter Platform Models**:
+### 📚 教程与资源
 
-- **[OpenRouter] google/gemini-2.5-flash-image-preview** - Recommended
+**视频教程：**
 
-### Installation
+- 📺 **Bilibili**: [@zhaotutu](https://space.bilibili.com/431046154) - 详细使用教程、工作流演示
+- 📺 **YouTube**: [@zhaotutu](https://www.youtube.com/@zhaotutu) - 英文教程和案例分享
 
-#### Method 1: Git Clone (Recommended)
+**工作流下载：**
 
-```bash
-cd /path/to/ComfyUI/custom_nodes
-git clone https://github.com/zhaotututu/Comfyui_Tutuapi.git
-# Restart ComfyUI
-```
+- 🔗 [RunningHub](https://www.runninghub.ai/user-center/1936823199386537986/webapp?inviteCode=rh-v0990) - 下载配套工作流和案例
 
-#### Method 2: Direct Download
+**社区支持：**
 
-1. Download ZIP from [GitHub releases](https://github.com/zhaotututu/Comfyui_Tutuapi/releases)
-2. Extract to `ComfyUI/custom_nodes/`
-3. Rename folder to `Comfyui_Tutuapi`
-4. Restart ComfyUI
+- 💬 [GitHub Issues](https://github.com/zhaotututu/ComfyUI-TutuBanana/issues) - 问题反馈和功能建议
+- 📖 [GitHub Wiki](https://github.com/zhaotututu/ComfyUI-TutuBanana/wiki) - 详细文档和教程
 
-### Configuration
+---
 
-1. **Install Dependencies**:
+### 📝 更新日志
 
-   ```bash
-   cd custom_nodes/Comfyui_Tutuapi
-   pip install -r requirements.txt
-   ```
-2. **Configure API Keys**:
+#### v2.0 (当前版本 - 重大更新)
 
-   Edit `Tutuapi.json`:
-
-   ```json
-   {
-     "comfly_api_key": "your_comfly_api_key_here",
-     "openrouter_api_key": "your_openrouter_api_key_here"
-   }
-   ```
-
-   Or input directly in the node interface (will auto-save).
-3. **Get API Keys**:
-
-   - **ai.comfly.chat**: Register at [https://ai.comfly.chat](https://ai.comfly.chat)
-   - **OpenRouter**: Register at [https://openrouter.ai](https://openrouter.ai)
-
-### Quick Start
-
-1. Load example workflows from the folder
-2. In the Gemini node, select from preset dropdown menu and input your prompt
-3. Optionally upload reference images and input API keys
-4. Run the node to generate content
-
-#### Image Editing Mode
-
-- Upload images to any image input port to automatically enable image editing mode
-- Support simultaneous use of multiple reference images
-- Prompts intelligently merge with preset templates
-- Each reference image is internally labeled upon upload, allowing you to use instructions like "Place the rabbit from image 1 on the table from image 2, using the style of image 3, to generate a new image"
-
-#### Text-to-Image Mode
-
-- Automatically uses text-to-image mode when no images are uploaded
-- System automatically adds size and quality optimization prompts
-- Supports generating 1-4 different images
-
-### Node Specifications
-
-#### 🚀 Tutu Nano Banana (Main Generation Node)
-
-**Required Inputs**:
-
-- `prompt` - Text prompt (STRING, force input from Prompt Master recommended)
-- `api_provider` - API provider selection (ai.comfly.chat / OpenRouter)
-- `model` - Model selection with provider tags
-- `num_images` - Number of images to generate (1-4)
-- `temperature` - Creativity control (0.0-2.0, default: 1.0)
-- `top_p` - Sampling control (0.0-1.0, default: 0.95)
-- `timeout` - Request timeout (10-600 seconds, default: 120)
-
-**Optional Inputs**:
-
-- `comfly_api_key` - ai.comfly.chat API key (auto-saves to config)
-- `openrouter_api_key` - OpenRouter API key (auto-saves to config)
-- `input_image_1` to `input_image_5` - Up to 5 reference images for editing tasks
-
-#### 🎨 Tutu Nano Banana Prompt Master (Optimization Node)
-
-**Required Inputs**:
-
-- `template_selection` - Template system (Custom Input / Auto Detect Scene / Saved Templates)
-- `user_idea` - Your creative concept (multiline text input)
-- `language` - Optimization language (English / Chinese)
-- `detail_level` - Quality enhancement level (Basic / Professional / Premium / Masterpiece)
-
-**Optional Inputs**:
-
-- `camera_control` - Photography controls (Wide-angle / Macro / Low-angle / High-angle / Close-up / Medium Shot)
-- `lighting_control` - Lighting setup (Studio / Natural / Golden Hour / Dramatic / Soft)
-- `quality_enhancement` - Enable advanced quality terms (Boolean, default: True)
-- `custom_additions` - Additional custom terms
-
-**Node Outputs:**
-
-#### 🚀 Tutu Nano Banana Outputs
-
-- `generated_images` - Generated image tensor (IMAGE)
-- `response` - Detailed API response with processing info (STRING)
-- `image_url` - First generated image URL if available (STRING)
-
-#### 🎨 Prompt Master Outputs
-
-- `optimized_prompt` - Enhanced and optimized prompt (STRING)
-- `template_used` - Applied template information (STRING)
-- `optimization_report` - Detailed processing report with applied enhancements (STRING)
-
-### Professional Template System
-
-#### 🎨 Built-in Professional Presets (12 Templates)
-
-Our template system includes carefully crafted presets optimized for different creative scenarios:
-
-**📸 Photography Presets:**
-
-- **Professional Portrait** - Studio portrait with professional lighting and composition
-- **Cinematic Landscape** - Epic landscape photography with dramatic lighting
-- **Product Photography** - Commercial product photography with clean presentation
-- **Architectural Photography** - Professional architectural photography with clean lines
-- **Gourmet Food Photography** - Appetizing food photography with perfect presentation
-- **Vintage Film Photography** - Classic film photography with nostalgic atmosphere
-
-**🎨 Art & Digital Presets:**
-
-- **Digital Concept Art** - High-quality digital concept art with fantasy elements
-- **Anime Style Art** - Japanese anime-style illustration with vibrant colors
-- **Classical Oil Painting** - Traditional oil painting with masterpiece quality
-- **Watercolor Painting** - Delicate watercolor painting with soft, flowing colors
-- **Photorealistic Render** - Ultra-realistic 3D rendering with perfect detail
-- **Cyberpunk Future** - Futuristic cyberpunk aesthetic with neon and high-tech elements
-
-#### Template Features
-
-- **🔥 One-Click Enhancement**: Select any preset to instantly apply professional-grade parameters
-- **🧠 Smart Prompt Integration**: Templates use `{prompt}` placeholders to seamlessly merge with your creative ideas
-- **📏 Optimized Length**: All templates optimized to stay under 50 characters for API efficiency
-- **🎯 Scene-Specific**: Each template tuned for specific creative scenarios and art styles
-- **💾 Auto-Detection**: Prompt Master can automatically detect scene type and suggest appropriate templates
-
-### Troubleshooting
-
-**Model Selection Error**:
-
-- ai.comfly.chat must use models with [Comfly] tag
-- OpenRouter must use models with [OpenRouter] tag
-- Don't mix models from different platforms
-
-**API Call Failed**:
-
-- Check API key configuration
-- Verify network connection
-- Check API balance
-- Ensure correct model selection
-
-**Node Not Found in ComfyUI**:
-
-- Restart ComfyUI after installation
-- Check if node appears as "Tutu Nano Banana" in the node library
-- If conflicts occur with other extensions, the node uses TutuGeminiAPI as internal name
-
-**Image Quality Issues**:
-
-- The node now preserves original AI-generated image quality
-- No more white borders or unwanted resizing
-- Images maintain their native resolution and quality
-
-### Version History
-
-#### v2.0 (Current - Major Architecture Update)
-
-- **🎯 NEW**: Dual-node architecture with dedicated Prompt Master node
-- **🖼️ NEW**: Multi-image processing - supports up to 5 simultaneous image inputs
-- **🎨 ENHANCED**: Professional template system with 12 optimized presets
-- **⚡ NEW**: Advanced Prompt Master with intelligent scene detection
-- **🌐 NEW**: Multi-language optimization support (English/Chinese)
-- **📡 IMPROVED**: Enhanced SSE stream processing for better compatibility
-- **🔧 OPTIMIZED**: Base64 image processing with quality preservation
-- **💾 NEW**: Persistent template system with auto-save functionality
-- **🎛️ NEW**: Advanced quality controls (Basic/Professional/Premium/Masterpiece levels)
-- **📸 NEW**: Camera and lighting control systems
+- ✨ 新增提示词模板管理器（333个专业模板）
+- ✨ 新增香蕉模型专业版（支持Google官方API和T8Star）
+- 🔄 重构图片索引映射系统（自动端口转换）
+- 🎲 新增随机种子控制（可重现的随机性）
+- 🖼️ 扩展图像输入（5路→14路）
+- 📐 新增精确尺寸控制（宽高比+分辨率级别）
+- 🔍 支持Google搜索增强功能
+- 🌐 优化多平台API兼容性
 
 #### v1.1
 
-- **Fixed**: Node name conflicts - uses TutuGeminiAPI internally
-- **Enhanced**: Unified base64 image processing for all API providers
-- **Fixed**: Eliminated white borders on generated images
-- **Improved**: OpenRouter API compatibility with direct base64 processing
+- 🔧 修复节点名称冲突
+- 🖼️ 统一base64图像处理
+- 🎨 消除图片白边问题
+- ⚡ 改进OpenRouter兼容性
 
 #### v1.0
 
-- Initial release with core functionality
-- Multi-platform API support
-- Basic preset system
-- Streaming response support
+- 🎉 初始版本发布
+- 🌐 多平台API支持
+- 📦 基础预设系统
+- 📡 流式响应支持
 
-### Tutorials & Resources
+---
 
-📺 **Video Tutorials**:
+### 🤝 贡献与致谢
 
-- **Bilibili**: [@zhaotutu](https://space.bilibili.com/431046154) - Comprehensive tutorials, workflow demonstrations, and model training guides (Chinese)
-- **YouTube**: [@zhaotutu](https://www.youtube.com/@zhaotutu) - Step-by-step guides and use cases
+**参考项目：**
 
-📦 **Workflow Gallery**:
+- [Comfyui_Comfly](https://github.com/ainewsto/Comfyui_Comfly) - 感谢原作者的优秀工作
 
-- Download ready-to-use workflows at [RunningHub](https://www.runninghub.ai/user-center/1936823199386537986/webapp?inviteCode=rh-v0990)
-- Includes various creative examples and advanced techniques
+---
 
-### System Requirements & Technical Stack
+### 📄 许可证
 
-#### 🖥️ System Requirements
+本项目基于 Apache-2.0 许可证开源。详见 [LICENSE](LICENSE) 文件。
 
-- **ComfyUI**: Latest version
-- **Python**: 3.8+ (recommended 3.10+)
-- **Operating System**: Windows / macOS / Linux
+---
 
-#### 📦 Core Dependencies
+### 📞 联系方式
 
-```text
-aiohttp              # Async HTTP client
-aiohttp-cors         # CORS support
-GitPython           # Git integration
-numpy               # Numerical computing
-Pillow              # Image processing
-requests            # HTTP request library
-torch               # PyTorch deep learning framework
-transformers        # Hugging Face model library
-huggingface-hub     # Hugging Face Hub integration
-psutil              # System monitoring
-matrix-client       # Matrix communication protocol support
-```
+- **GitHub**: [@zhaotututu](https://github.com/zhaotututu)
+- **Bilibili**: [@zhaotutu](https://space.bilibili.com/431046154)
+- **YouTube**: [@zhaotutu](https://www.youtube.com/@zhaotutu)
 
-#### ⚙️ Node Architecture
+---
 
-- **Main Node**: `TutuGeminiAPI` (displays as "🚀 Tutu Nano Banana")
-- **Assistant Node**: `TutuNanaBananaPromptMaster` (displays as "🎨 Tutu Nano Banana Prompt Master")
-- **Utility Functions**: `utils.py` - Professional PIL/Tensor conversion tools
-- **Configuration Management**: `Tutuapi.json` - API key and settings storage
-- **Template System**: `presets.json` - Preset template persistence storage
+<div align="center">
 
-### Support & Feedback
+**如果觉得这个项目有帮助，请给个⭐️支持一下！**
 
-For issues or feature suggestions, please submit at [GitHub Issues](https://github.com/zhaotututu/Comfyui_Tutuapi/issues).
+Made with ❤️ by AI LAB Tutu
 
-### License
+</div>
 
-This project is open source under the Apache-2.0 license.
-
-### Acknowledgments
-
-This project references some code implementations from the [Comfyui_Comfly](https://github.com/ainewsto/Comfyui_Comfly) project. Special thanks to the original authors for their excellent work.

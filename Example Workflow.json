@@ -1,0 +1,356 @@
+{
+  "id": "2e548d46-f5bb-4cd8-bdec-d45a033b42b9",
+  "revision": 0,
+  "last_node_id": 50,
+  "last_link_id": 100,
+  "nodes": [
+    {
+      "id": 50,
+      "type": "TutuPromptMasterV3",
+      "pos": [
+        -2280.88232421875,
+        -882.3489990234375
+      ],
+      "size": [
+        480,
+        320
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "label": "final_prompt",
+          "name": "final_prompt",
+          "type": "STRING",
+          "links": [
+            100
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TutuPromptMasterV3"
+      },
+      "widgets_values": [
+        "将女孩手中的香蕉换成木棍",
+        null,
+        [
+          false,
+          true
+        ]
+      ]
+    },
+    {
+      "id": 49,
+      "type": "TutuNanoBananaPro",
+      "pos": [
+        -2276.5634765625,
+        -503.0113220214844
+      ],
+      "size": [
+        474.1128845214844,
+        506
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "link": 100
+        },
+        {
+          "label": "input_image_1",
+          "name": "input_image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_2",
+          "name": "input_image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_3",
+          "name": "input_image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_4",
+          "name": "input_image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_5",
+          "name": "input_image_5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_6",
+          "name": "input_image_6",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_7",
+          "name": "input_image_7",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_8",
+          "name": "input_image_8",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 99
+        },
+        {
+          "label": "input_image_9",
+          "name": "input_image_9",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_10",
+          "name": "input_image_10",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_11",
+          "name": "input_image_11",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_12",
+          "name": "input_image_12",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_13",
+          "name": "input_image_13",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "input_image_14",
+          "name": "input_image_14",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "generated_image",
+          "name": "generated_image",
+          "type": "IMAGE",
+          "links": [
+            94
+          ]
+        },
+        {
+          "label": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": [
+            95
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TutuNanoBananaPro"
+      },
+      "widgets_values": [
+        "T8Star",
+        "3:4",
+        "2K",
+        "",
+        "",
+        622749884384135,
+        "randomize",
+        false
+      ]
+    },
+    {
+      "id": 17,
+      "type": "LoadImage",
+      "pos": [
+        -1789.3079833984375,
+        -873.350830078125
+      ],
+      "size": [
+        450.350830078125,
+        537.8597412109375
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "label": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            99
+          ]
+        },
+        {
+          "label": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "ComfyUI_00182_.png",
+        "image"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "ShowText|pysssss",
+      "pos": [
+        -1781.6162109375,
+        -261.36279296875
+      ],
+      "size": [
+        296.23858642578125,
+        201.6702423095703
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "text",
+          "name": "text",
+          "type": "STRING",
+          "link": 95
+        }
+      ],
+      "outputs": [
+        {
+          "label": "STRING",
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "🍌 **香蕉模型专业版生成结果** (2025-11-23 01:09:44)\n\n**API提供商**: T8Star API\n**模型**: nano-banana-2\n**模式**: img2img\n**请求分辨率**: 2K @ 3:4\n**实际输出**: 1792x2400 (从 1 张中选择最高分辨率)\n**输入图片**: 1 张 (端口: [8])\n**生成时间**: 40.7 秒\n\n✓ 生成成功"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveImage",
+      "pos": [
+        -1318.03564453125,
+        -867.039794921875
+      ],
+      "size": [
+        485.6141357421875,
+        538.4471435546875
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 94
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    }
+  ],
+  "links": [
+    [
+      94,
+      49,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      95,
+      49,
+      1,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      99,
+      17,
+      0,
+      49,
+      8,
+      "IMAGE"
+    ],
+    [
+      100,
+      50,
+      0,
+      49,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5989500000000022,
+      "offset": [
+        3142.828364020236,
+        1008.6047504635603
+      ]
+    },
+    "ue_links": [],
+    "frontendVersion": "1.26.13",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
