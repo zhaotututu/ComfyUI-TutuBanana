@@ -49,6 +49,7 @@ ComfyUI-TutuBanana is a powerful suite of custom nodes for ComfyUI, specifically
 - 🌍 Bilingual template support (Chinese/English)
 - 🔍 Visual template browser with search and preview
 - 💾 One-click template loading and application
+- 🖼️ **Tip**: Double-click example images in the template browser to view full-size images
 
 ![Template Browser UI](image/QQ20251123-003541.png)
 
@@ -137,13 +138,15 @@ ComfyUI-TutuBanana is a powerful suite of custom nodes for ComfyUI, specifically
 
 #### Installation
 
-**Method 1: Install via ComfyUI Manager (Recommended)**
+**Method 1: Install via ComfyUI Manager**
+
+> ⚠️ **Note**: Currently, ComfyUI Manager has not yet included this node, so this method is temporarily unavailable. Please use Method 2 or Method 3 below for installation.
 
 1. Open ComfyUI Manager
 2. Search for `TutuBanana`
 3. Click install and restart ComfyUI
 
-**Method 2: Git Clone Installation**
+**Method 2: Git Clone Installation (Recommended)**
 
 ```bash
 cd ComfyUI/custom_nodes

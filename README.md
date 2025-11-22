@@ -49,6 +49,7 @@ ComfyUI-TutuBanana 是一个功能强大的ComfyUI自定义节点套装，专为
 - 🌍 中英文双语模板支持
 - 🔍 可视化模板浏览器，支持搜索和预览
 - 💾 一键加载和应用模板
+- 🖼️ **提示**：双击模板浏览器中的示例图片可以查看大图
 
 ![模板浏览器界面](image/QQ20251123-003541.png)
 
@@ -137,13 +138,15 @@ ComfyUI-TutuBanana 是一个功能强大的ComfyUI自定义节点套装，专为
 
 #### 安装方式
 
-**方法一：通过ComfyUI Manager安装（推荐）**
+**方法一：通过ComfyUI Manager安装**
+
+> ⚠️ **注意**：当前 ComfyUI Manager 尚未收录本节点，此方法暂不可用。请使用下面的方法二或方法三进行安装。
 
 1. 打开ComfyUI Manager
 2. 搜索 `TutuBanana`
 3. 点击安装并重启ComfyUI
 
-**方法二：Git克隆安装**
+**方法二：Git克隆安装（推荐）**
 
 ```bash
 cd ComfyUI/custom_nodes
