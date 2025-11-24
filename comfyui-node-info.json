@@ -1,36 +1,43 @@
 {
-  "title": "ComfyUI Tutu API for Google Gemini",
+  "title": "ComfyUI-TutuBanana - Professional Gemini Image Generation",
+  "id": "tutubanana",
   "author": "zhaotututu",
-  "description": "A ComfyUI custom node for Google Gemini image generation with multiple API providers support (ai.comfly.chat & OpenRouter)",
+  "description": "Professional Gemini image generation node suite with 333 prompt templates, multi-platform API support (OpenRouter/Comfly/Google/T8Star), up to 14 image inputs, and intelligent template manager.",
   "reference": "https://github.com/zhaotututu/ComfyUI-TutuBanana",
   "files": [
     "https://github.com/zhaotututu/ComfyUI-TutuBanana"
   ],
   "install_type": "git-clone",
   "pip": [
-    "requests",
     "aiohttp",
+    "aiohttp-cors",
+    "requests",
     "numpy",
-    "pillow",
-    "opencv-python"
+    "pillow"
   ],
   "nodes": [
-    "TutuGeminiAPI"
+    "TutuGeminiAPI",
+    "TutuPromptMasterV3",
+    "TutuNanoBananaPro"
   ],
+  "nodename_pattern": "^(Tutu.*|TutuPromptMasterV3|TutuNanoBananaPro)$",
   "display_name_mapping": {
-    "TutuGeminiAPI": "Tutu Nano Banana"
+    "TutuGeminiAPI": "🍌 Tutu 图图的香蕉模型(OpenRouter / Comfly)",
+    "TutuPromptMasterV3": "🎨 Tutu 图图香蕉模型提示词模板管理器",
+    "TutuNanoBananaPro": "🍌 Tutu 图图的香蕉模型专业版/香蕉2 (Google官方 / T8Star)"
   },
   "tags": [
     "gemini",
     "google",
     "ai",
     "image generation",
+    "prompt",
+    "template",
     "api",
     "comfly",
-    "openrouter"
+    "openrouter",
+    "multi-image"
   ],
-  "presets": [
-    "gemini"
-  ]
+  "version": "2.0.0"
 }
 
