@@ -12,13 +12,112 @@ import { api } from "../../../scripts/api.js";
  * - One-click template application
  */
 
-// Function to inject a CSS file
-function addCss(url) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.type = "text/css";
-    link.href = url;
-    document.head.appendChild(link);
+// CSS loading state
+let cssLoadAttempted = false;
+let cssLoadSuccess = false;
+
+/**
+ * Enhanced CSS loading with multiple fallback strategies
+ * - Checks for duplicate loading
+ * - Tries multiple paths
+ * - Falls back to inline styles if external CSS fails
+ * - Includes detailed logging for debugging
+ */
+function ensureCssLoaded() {
+    if (cssLoadAttempted) {
+        console.log("[Tutu v3 CSS] Already attempted to load CSS, success:", cssLoadSuccess);
+        return;
+    }
+    
+    cssLoadAttempted = true;
+    console.log("[Tutu v3 CSS] Starting CSS loading process...");
+    
+    // Check if CSS is already loaded
+    const existingLinks = document.querySelectorAll('link[href*="tutu_styles.css"]');
+    if (existingLinks.length > 0) {
+        console.log("[Tutu v3 CSS] ✅ CSS already loaded, found", existingLinks.length, "link(s)");
+        cssLoadSuccess = true;
+        return;
+    }
+    
+    // Try loading from primary and alternate paths
+    const cssPaths = [
+        "/extensions/ComfyUI-TutuBanana/css/tutu_styles.css",       // Primary path
+        "/extensions/ComfyUI-TutuBanana/web/css/tutu_styles.css"   // Alternate path
+    ];
+    
+    let loadedSuccessfully = false;
+    
+    cssPaths.forEach((cssPath, index) => {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.type = "text/css";
+        link.href = cssPath;
+        
+        link.onload = () => {
+            if (!loadedSuccessfully) {
+                console.log(`[Tutu v3 CSS] ✅ Successfully loaded CSS from: ${cssPath}`);
+                cssLoadSuccess = true;
+                loadedSuccessfully = true;
+            }
+        };
+        
+        link.onerror = () => {
+            console.warn(`[Tutu v3 CSS] ❌ Failed to load CSS from: ${cssPath}`);
+            if (index === cssPaths.length - 1 && !loadedSuccessfully) {
+                // Last path also failed, inject fallback styles
+                console.warn("[Tutu v3 CSS] ⚠️ All CSS paths failed, injecting inline fallback styles...");
+                injectFallbackStyles();
+            }
+        };
+        
+        console.log(`[Tutu v3 CSS] Attempting to load CSS (path ${index + 1}/${cssPaths.length}): ${cssPath}`);
+        document.head.appendChild(link);
+    });
+    
+    // Set a timeout to check if CSS loaded
+    setTimeout(() => {
+        if (!cssLoadSuccess) {
+            console.warn("[Tutu v3 CSS] ⚠️ CSS loading timeout reached, injecting fallback styles...");
+            injectFallbackStyles();
+        }
+    }, 2000);
+}
+
+/**
+ * Inject minimal inline CSS as fallback
+ * Ensures basic usability even if external CSS fails to load
+ */
+function injectFallbackStyles() {
+    const existingFallback = document.getElementById('tutu-fallback-styles');
+    if (existingFallback) {
+        console.log("[Tutu v3 CSS] Fallback styles already injected");
+        return;
+    }
+    
+    const style = document.createElement("style");
+    style.id = 'tutu-fallback-styles';
+    style.textContent = `
+        /* Tutu Template Manager - Fallback Styles */
+        .tutu-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); }
+        .tutu-modal-content { width: 90%; max-width: 1400px; height: 85%; max-height: 900px; background: #1e1e1e; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .tutu-header { background: #2a2a2a; padding: 20px; border-bottom: 1px solid #3a3a3a; display: flex; align-items: center; gap: 20px; }
+        .tutu-header h2 { margin: 0; color: #fff; flex: 1; }
+        .close-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+        .tutu-body { flex: 1; display: flex; overflow: hidden; }
+        .tutu-sidebar { width: 280px; background: #252525; border-right: 1px solid #3a3a3a; display: flex; flex-direction: column; }
+        .tutu-main { flex: 1; background: #1e1e1e; overflow-y: auto; padding: 25px; }
+        .category-btn { width: 100%; background: #2a2a2a; border: 1px solid #3a3a3a; color: #fff; padding: 10px; margin: 5px; cursor: pointer; text-align: left; }
+        .category-btn.active { background: #0066cc; }
+        .template-item { background: #2a2a2a; border: 1px solid #3a3a3a; padding: 12px; margin: 8px; cursor: pointer; color: #fff; }
+        .template-item.active { background: #0066cc; }
+        .tutu-footer { background: #2a2a2a; padding: 15px; border-top: 1px solid #3a3a3a; display: flex; justify-content: flex-end; gap: 10px; }
+        .tutu-footer button { padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid #3a3a3a; }
+        .btn-cancel { background: #3a3a3a; color: #fff; }
+        .btn-apply { background: #0066cc; color: #fff; }
+    `;
+    document.head.appendChild(style);
+    console.log("[Tutu v3 CSS] ✅ Injected inline fallback styles");
 }
 
 // Global state
@@ -37,19 +136,22 @@ let templateManagerState = {
 function openTemplateManager(node) {
     console.log("[Tutu v3] Opening template manager for node:", node);
     
+    // Ensure CSS is loaded before opening modal
+    ensureCssLoaded();
+    
     // Remove any existing modal
     const existingModal = document.getElementById('tutu-template-manager');
     if (existingModal) {
+        console.log("[Tutu v3] Removing existing modal");
         existingModal.remove();
     }
-    
-    // Dynamically inject the modal's CSS
-    addCss("/extensions/ComfyUI-TutuBanana/css/tutu_styles.css");
 
     // Create modal
     const modal = createTemplateManagerModal(node);
     document.body.appendChild(modal);
     modal.style.display = 'flex';
+    
+    console.log("[Tutu v3] Modal created and added to DOM");
     
     // Load data
     loadTemplateData(modal, node);
@@ -57,6 +159,7 @@ function openTemplateManager(node) {
     // Show modal
     setTimeout(() => {
         modal.classList.add('tutu-modal-show');
+        console.log("[Tutu v3] Modal displayed");
     }, 10);
 }
 
@@ -1151,6 +1254,12 @@ async function searchTemplates(modal, keyword) {
 
 app.registerExtension({
     name: "Tutu.TemplateManagerV3",
+    
+    async setup() {
+        // Pre-load CSS when extension initializes
+        console.log("[Tutu v3] Extension setup - Pre-loading CSS...");
+        ensureCssLoaded();
+    },
     
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "TutuPromptMasterV3") {
