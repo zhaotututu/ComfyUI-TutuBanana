@@ -121,6 +121,7 @@ class TutuNanoBananaPro:
         config = get_config()
         self.google_api_key = config.get('google_api_key', '')
         self.t8star_api_key = config.get('t8star_api_key', '')
+        self.session = None  # 用于管理HTTP连接
     
     def get_api_config(self, api_provider):
         """获取API配置"""
@@ -591,15 +592,23 @@ class TutuNanoBananaPro:
             
             start_time = time.time()
             
-            response = requests.post(
-                config['endpoint'],
-                headers=headers,
-                json=payload,
-                timeout=180
-            )
+            # 每次请求创建新的session，避免代理连接复用问题
+            session = requests.Session()
+            session.trust_env = True  # 使用系统环境变量的代理设置
             
-            elapsed = time.time() - start_time
-            print(f"[Tutu] 响应状态: {response.status_code} (耗时: {elapsed:.1f}秒)")
+            try:
+                response = session.post(
+                    config['endpoint'],
+                    headers=headers,
+                    json=payload,
+                    timeout=180
+                )
+                
+                elapsed = time.time() - start_time
+                print(f"[Tutu] 响应状态: {response.status_code} (耗时: {elapsed:.1f}秒)")
+            finally:
+                # 无论成功失败，都关闭session，不复用连接
+                session.close()
             
             # 检查HTTP错误
             if response.status_code != 200:

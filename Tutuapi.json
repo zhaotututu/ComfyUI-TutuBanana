@@ -1,7 +1,4 @@
 {
-    "_comment": "请在此文件中填入您的API密钥。各平台获取方式：comfly_api_key - 访问 ai.comfly.chat 获取；openrouter_api_key - 访问 openrouter.ai 获取；google_api_key - 访问 https://aistudio.google.com/apikey 获取；t8star_api_key - 访问 t8star.ai 获取",
-    "comfly_api_key": "",
-    "openrouter_api_key": "",
-    "google_api_key": "",
-    "t8star_api_key": ""
+    "t8star_api_key": "sk-m9FT0SajjFvec3NlYzAFdNk8TnAyI7BIURkrKtup0RNxjCDq",
+    "google_api_key": "AIzaSyCb7Ra8jTgQpF6QewD9LfJ5gIg0mi3pSco"
 }
