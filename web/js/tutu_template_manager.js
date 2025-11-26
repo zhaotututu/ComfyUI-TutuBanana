@@ -17,6 +17,44 @@ let cssLoadAttempted = false;
 let cssLoadSuccess = false;
 
 /**
+ * 获取扩展的基础路径（自动检测文件夹名称）
+ * 解决从GitHub下载后文件夹名带 -main 后缀的问题
+ */
+function getExtensionBasePath() {
+    // 方法1: 从当前脚本URL获取
+    try {
+        const scripts = document.querySelectorAll('script[src*="tutu_template_manager"]');
+        if (scripts.length > 0) {
+            const scriptUrl = scripts[0].src;
+            // 提取 /extensions/XXX/ 部分
+            const match = scriptUrl.match(/\/extensions\/([^/]+)\//);
+            if (match) {
+                return `/extensions/${match[1]}`;
+            }
+        }
+    } catch (e) {
+        console.warn("[Tutu v3 CSS] Failed to get path from script tag:", e);
+    }
+    
+    // 方法2: 尝试从已加载的CSS中获取
+    try {
+        const existingLinks = document.querySelectorAll('link[href*="tutu"]');
+        for (const link of existingLinks) {
+            const match = link.href.match(/\/extensions\/([^/]+)\//);
+            if (match) {
+                return `/extensions/${match[1]}`;
+            }
+        }
+    } catch (e) {
+        console.warn("[Tutu v3 CSS] Failed to get path from existing links:", e);
+    }
+    
+    // 方法3: 尝试通过网络请求检测实际文件夹名
+    // 这是异步的，所以返回一个可能的名称列表
+    return null;
+}
+
+/**
  * Enhanced CSS loading with multiple fallback strategies
  * - Checks for duplicate loading
  * - Tries multiple paths
@@ -40,11 +78,33 @@ function ensureCssLoaded() {
         return;
     }
     
-    // Try loading from primary and alternate paths
-    const cssPaths = [
-        "/extensions/ComfyUI-TutuBanana/css/tutu_styles.css",       // Primary path
-        "/extensions/ComfyUI-TutuBanana/web/css/tutu_styles.css"   // Alternate path
+    // 动态获取扩展路径
+    const basePath = getExtensionBasePath();
+    
+    // 构建CSS路径列表（支持多种可能的文件夹名）
+    const possibleFolderNames = [
+        'ComfyUI-TutuBanana',      // 标准名称
+        'ComfyUI-TutuBanana-main', // GitHub下载带后缀
+        'ComfyUI-TutuBanana-master'  // 也可能是master分支
     ];
+    
+    let cssPaths = [];
+    
+    if (basePath) {
+        // 如果成功获取了基础路径，优先使用它
+        console.log("[Tutu v3 CSS] Detected extension path:", basePath);
+        cssPaths = [
+            `${basePath}/css/tutu_styles.css`,
+            `${basePath}/web/css/tutu_styles.css`
+        ];
+    } else {
+        // 否则尝试所有可能的路径
+        console.log("[Tutu v3 CSS] Could not detect path, trying all possibilities...");
+        for (const folderName of possibleFolderNames) {
+            cssPaths.push(`/extensions/${folderName}/css/tutu_styles.css`);
+            cssPaths.push(`/extensions/${folderName}/web/css/tutu_styles.css`);
+        }
+    }
     
     let loadedSuccessfully = false;
     

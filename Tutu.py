@@ -398,14 +398,19 @@ class TutuGeminiAPI:
                     # 准备额外数据（如果需要）
                     data = service.get('extra_data', {})
                     
-                    # 发送上传请求
-                    response = requests.post(
-                        service['url'], 
-                        files=files,
-                        data=data,
-                        timeout=30,
-                        headers={'User-Agent': 'ComfyUI-Tutu/1.0'}
-                    )
+                    # 发送上传请求 - 使用独立session避免代理连接复用问题
+                    session = requests.Session()
+                    session.trust_env = True
+                    try:
+                        response = session.post(
+                            service['url'], 
+                            files=files,
+                            data=data,
+                            timeout=30,
+                            headers={'User-Agent': 'ComfyUI-Tutu/1.0'}
+                        )
+                    finally:
+                        session.close()
                     
                     if response.status_code == 200:
                         # 根据服务类型提取URL
@@ -1283,8 +1288,11 @@ CRITICAL: You MUST return an actual image, not just text description. Use your i
             pbar = comfy.utils.ProgressBar(100)
             pbar.update_absolute(10)
 
+            # 使用独立session避免代理连接复用问题
+            session = requests.Session()
+            session.trust_env = True
             try:
-                response = requests.post(
+                response = session.post(
                     api_endpoint,
                     headers=headers,
                     json=payload,
@@ -1338,6 +1346,8 @@ CRITICAL: You MUST return an actual image, not just text description. Use your i
             except requests.exceptions.RequestException as e:
                 print(f"[Tutu] ❌ 请求异常: {str(e)}")
                 raise Exception(f"API request failed: {str(e)}")
+            finally:
+                session.close()
             
             pbar.update_absolute(40)
 
@@ -1362,10 +1372,15 @@ CRITICAL: You MUST return an actual image, not just text description. Use your i
                                 image_data = base64.b64decode(base64_data)
                                 pil_image = Image.open(BytesIO(image_data))
                             else:
-                                # Handle HTTP URL
-                                img_response = requests.get(url, timeout=self.timeout)
-                                img_response.raise_for_status()
-                                pil_image = Image.open(BytesIO(img_response.content))
+                                # Handle HTTP URL - 使用独立session避免代理连接复用问题
+                                img_session = requests.Session()
+                                img_session.trust_env = True
+                                try:
+                                    img_response = img_session.get(url, timeout=self.timeout)
+                                    img_response.raise_for_status()
+                                    pil_image = Image.open(BytesIO(img_response.content))
+                                finally:
+                                    img_session.close()
 
                             # 直接使用生成的原图
                             img_tensor = pil2tensor(pil_image)

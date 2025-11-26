@@ -121,7 +121,6 @@ class TutuNanoBananaPro:
         config = get_config()
         self.google_api_key = config.get('google_api_key', '')
         self.t8star_api_key = config.get('t8star_api_key', '')
-        self.session = None  # 用于管理HTTP连接
     
     def get_api_config(self, api_provider):
         """获取API配置"""
@@ -450,24 +449,21 @@ class TutuNanoBananaPro:
     def decode_image(self, image_url):
         """下载或解码图片"""
         try:
-            # 启用截断图片加载支持
-            from PIL import ImageFile
-            ImageFile.LOAD_TRUNCATED_IMAGES = True
-            
             if image_url.startswith('data:image/'):
                 # Base64图片
                 base64_data = image_url.split(',', 1)[1]
                 image_data = base64.b64decode(base64_data)
                 pil_image = Image.open(BytesIO(image_data))
-                # 强制加载完整图片数据
-                pil_image.load()
             else:
-                # HTTP URL图片
-                response = requests.get(image_url, timeout=60)
-                response.raise_for_status()
-                pil_image = Image.open(BytesIO(response.content))
-                # 强制加载完整图片数据
-                pil_image.load()
+                # HTTP URL图片 - 使用独立session避免代理连接复用问题
+                session = requests.Session()
+                session.trust_env = True
+                try:
+                    response = session.get(image_url, timeout=60)
+                    response.raise_for_status()
+                    pil_image = Image.open(BytesIO(response.content))
+                finally:
+                    session.close()
             
             # 转换为RGB模式
             if pil_image.mode != 'RGB':
@@ -592,10 +588,9 @@ class TutuNanoBananaPro:
             
             start_time = time.time()
             
-            # 每次请求创建新的session，避免代理连接复用问题
+            # 使用独立session避免代理连接复用问题
             session = requests.Session()
-            session.trust_env = True  # 使用系统环境变量的代理设置
-            
+            session.trust_env = True
             try:
                 response = session.post(
                     config['endpoint'],
@@ -603,12 +598,11 @@ class TutuNanoBananaPro:
                     json=payload,
                     timeout=180
                 )
-                
-                elapsed = time.time() - start_time
-                print(f"[Tutu] 响应状态: {response.status_code} (耗时: {elapsed:.1f}秒)")
             finally:
-                # 无论成功失败，都关闭session，不复用连接
                 session.close()
+            
+            elapsed = time.time() - start_time
+            print(f"[Tutu] 响应状态: {response.status_code} (耗时: {elapsed:.1f}秒)")
             
             # 检查HTTP错误
             if response.status_code != 200:
